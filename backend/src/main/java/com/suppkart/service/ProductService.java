@@ -44,7 +44,7 @@ public class ProductService {
                    pageable.getPageNumber(), pageable.getPageSize());
         
         try {
-            Page<Product> products = productRepository.findByActiveTrue(pageable);
+            Page<Product> products = productRepository.findByIsActiveTrue(pageable);
             logger.info("Successfully fetched {} products", products.getTotalElements());
             return products;
         } catch (Exception e) {
@@ -86,7 +86,7 @@ public class ProductService {
                    brand, pageable.getPageNumber(), pageable.getPageSize());
         
         try {
-            Page<Product> products = productRepository.findByBrandAndActiveTrue(brand, pageable);
+            Page<Product> products = productRepository.findByBrandAndIsActiveTrue(brand, pageable);
             logger.info("Successfully fetched {} products for brand {}", products.getTotalElements(), brand);
             return products;
         } catch (Exception e) {
@@ -128,7 +128,7 @@ public class ProductService {
         logger.info("Fetching product by ID: {}", productId);
         
         try {
-            Optional<Product> product = productRepository.findByProductIdAndActiveTrue(productId);
+            Optional<Product> product = productRepository.findByProductIdAndIsActiveTrue(productId);
             
             if (product.isPresent()) {
                 logger.info("Successfully found product: {}", product.get().getName());
@@ -151,11 +151,11 @@ public class ProductService {
         logger.info("Fetching variants for product ID: {}", productId);
         
         try {
-            if (!productRepository.existsByProductIdAndActiveTrue(productId)) {
+            if (!productRepository.existsByProductIdAndIsActiveTrue(productId)) {
                 throw new BusinessException("PRODUCT_NOT_FOUND", "Product not found with id: " + productId);
             }
             
-            List<ProductVariant> variants = productVariantRepository.findByProduct_ProductIdAndActiveTrue(productId);
+            List<ProductVariant> variants = productVariantRepository.findByProduct_ProductIdAndIsActiveTrue(productId);
             logger.info("Found {} variants for product {}", variants.size(), productId);
             return variants;
         } catch (BusinessException e) {
@@ -174,7 +174,7 @@ public class ProductService {
         logger.info("Fetching product variant by ID: {}", variantId);
         
         try {
-            Optional<ProductVariant> variant = productVariantRepository.findByVariantIdAndActiveTrue(variantId);
+            Optional<ProductVariant> variant = productVariantRepository.findByVariantIdAndIsActiveTrue(variantId);
             
             if (variant.isPresent()) {
                 logger.info("Successfully found variant: {} - {}", 
@@ -246,7 +246,7 @@ public class ProductService {
         logger.info("Fetching all categories");
         
         try {
-            List<Category> categories = categoryRepository.findByActiveTrueOrderByNameAsc();
+            List<Category> categories = categoryRepository.findByIsActiveTrueOrderByNameAsc();
             logger.info("Found {} categories", categories.size());
             return categories;
         } catch (Exception e) {

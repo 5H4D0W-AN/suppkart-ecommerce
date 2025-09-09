@@ -108,8 +108,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
      */
     @Query("SELECT oi FROM OrderItem oi WHERE oi.product = :product " +
            "AND (:productVariant IS NULL OR oi.productVariant = :productVariant)")
-    List<OrderItem> findByProductAndVariant(@Param("product") Product product, 
-                                          @Param("productVariant") ProductVariant productVariant);
+    List<OrderItem> findByProductAndVariant(@Param("product") Product product,
+                                            @Param("productVariant") ProductVariant productVariant);
     
     /**
      * Check if a product has been ordered before

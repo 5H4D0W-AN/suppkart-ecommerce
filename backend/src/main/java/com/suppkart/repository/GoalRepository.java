@@ -50,7 +50,8 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
      * Find goals with product count
      */
     @Query("SELECT g, COUNT(DISTINCT pg.product) as productCount FROM Goal g " +
-           "LEFT JOIN g.productGoals pg ON pg.product.isActive = true " +
+           "LEFT JOIN ProductGoal pg ON pg.goalId = g.goalId " +
+           "LEFT JOIN Product p ON p.productId = pg.productId AND p.isActive = true " +
            "WHERE g.isActive = true " +
            "GROUP BY g.goalId " +
            "ORDER BY g.displayOrder ASC")
@@ -60,10 +61,11 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
      * Find top goals by product count
      */
     @Query("SELECT g FROM Goal g " +
-           "LEFT JOIN g.productGoals pg ON pg.product.isActive = true " +
+           "LEFT JOIN ProductGoal pg ON pg.goalId = g.goalId " +
+           "LEFT JOIN Product p ON p.productId = pg.productId AND p.isActive = true " +
            "WHERE g.isActive = true " +
            "GROUP BY g.goalId " +
-           "ORDER BY COUNT(DISTINCT pg.product) DESC")
+           "ORDER BY COUNT(DISTINCT p) DESC")
     List<Goal> findTopGoalsByProductCount();
     
     /**

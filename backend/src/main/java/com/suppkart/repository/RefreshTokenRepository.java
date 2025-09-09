@@ -100,7 +100,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     /**
      * Find refresh tokens that have expired before the given date
      */
-    List<RefreshToken> findByExpiryDateBefore(LocalDateTime expiryDate);
+    List<RefreshToken> findByExpiresAtBefore(LocalDateTime expiryDate);
     
     /**
      * Count expired refresh tokens

@@ -26,8 +26,8 @@ public class RedisConfig {
     @Value("${spring.redis.database:0}")
     private int redisDatabase;
 
-    @Value("${spring.redis.timeout:2000}")
-    private long redisTimeout;
+    @Value("${spring.redis.timeout:2000ms}")
+    private String redisTimeoutStr;
 
     /**
      * Redis Connection Factory Configuration
@@ -72,10 +72,10 @@ public class RedisConfig {
     }
 
     /**
-     * Redis Template for String operations
+     * Redis Template for custom String operations
      */
     @Bean
-    public RedisTemplate<String, String> stringRedisTemplate(RedisConnectionFactory connectionFactory) {
+    public RedisTemplate<String, String> customStringRedisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 

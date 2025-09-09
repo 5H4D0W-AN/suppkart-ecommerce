@@ -18,7 +18,7 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     /**
      * Find all cart items for a cart
      */
-    List<CartItem> findByCart_CartIdOrderByAddedAtDesc(Long cartId);
+    List<CartItem> findByCart_CartIdOrderByCreatedAtDesc(Long cartId);
 
     /**
      * Find all cart items for a cart (by Cart entity)
@@ -54,7 +54,7 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     /**
      * Calculate total price for a cart
      */
-    @Query("SELECT COALESCE(SUM(ci.quantity * ci.priceAtAddition), 0) FROM CartItem ci WHERE ci.cart.cartId = :cartId")
+    @Query("SELECT COALESCE(SUM(ci.quantity * ci.unitPrice), 0) FROM CartItem ci WHERE ci.cart.cartId = :cartId")
     Double getTotalPriceByCartId(@Param("cartId") Long cartId);
 
     /**
@@ -106,27 +106,26 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
      * Find cart items with out of stock products
      */
     @Query("SELECT ci FROM CartItem ci WHERE " +
-           "(ci.variant IS NULL AND ci.product.stockQuantity < ci.quantity) OR " +
-           "(ci.variant IS NOT NULL AND ci.variant.stockQuantity < ci.quantity)")
+           "ci.variant IS NOT NULL AND ci.variant.stockQuantity < ci.quantity")
     List<CartItem> findItemsWithInsufficientStock();
 
     /**
      * Update price for all cart items of a product
      */
     @Modifying
-    @Query("UPDATE CartItem ci SET ci.priceAtAddition = :newPrice WHERE ci.product.productId = :productId AND ci.variant IS NULL")
+    @Query("UPDATE CartItem ci SET ci.unitPrice = :newPrice WHERE ci.product.productId = :productId AND ci.variant IS NULL")
     void updatePriceForProduct(@Param("productId") Long productId, @Param("newPrice") Double newPrice);
 
     /**
      * Update price for all cart items of a product variant
      */
     @Modifying
-    @Query("UPDATE CartItem ci SET ci.priceAtAddition = :newPrice WHERE ci.variant.variantId = :variantId")
+    @Query("UPDATE CartItem ci SET ci.unitPrice = :newPrice WHERE ci.variant.variantId = :variantId")
     void updatePriceForVariant(@Param("variantId") Long variantId, @Param("newPrice") Double newPrice);
 
     /**
      * Find cart items added in a date range
      */
-    @Query("SELECT ci FROM CartItem ci WHERE ci.addedAt BETWEEN :startDate AND :endDate")
+    @Query("SELECT ci FROM CartItem ci WHERE ci.createdAt BETWEEN :startDate AND :endDate")
     List<CartItem> findItemsAddedBetweenDates(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }

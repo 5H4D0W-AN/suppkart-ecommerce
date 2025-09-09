@@ -36,10 +36,10 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
     /**
      * Find profiles by phone number
      */
-    Optional<UserProfile> findByPhoneNumber(String phoneNumber);
+    Optional<UserProfile> findByPhone(String phone);
 
     /**
      * Check if phone number exists
      */
-    boolean existsByPhoneNumber(String phoneNumber);
+    boolean existsByPhone(String phone);
 }

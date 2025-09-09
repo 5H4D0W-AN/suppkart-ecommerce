@@ -50,7 +50,8 @@ public interface SportRepository extends JpaRepository<Sport, Long> {
      * Find sports with product count
      */
     @Query("SELECT s, COUNT(DISTINCT ps.product) as productCount FROM Sport s " +
-           "LEFT JOIN s.productSports ps ON ps.product.isActive = true " +
+           "LEFT JOIN ProductSport ps ON ps.sportId = s.sportId " +
+           "LEFT JOIN Product p ON p.productId = ps.productId AND p.isActive = true " +
            "WHERE s.isActive = true " +
            "GROUP BY s.sportId " +
            "ORDER BY s.displayOrder ASC")
@@ -60,10 +61,11 @@ public interface SportRepository extends JpaRepository<Sport, Long> {
      * Find top sports by product count
      */
     @Query("SELECT s FROM Sport s " +
-           "LEFT JOIN s.productSports ps ON ps.product.isActive = true " +
+           "LEFT JOIN ProductSport ps ON ps.sportId = s.sportId " +
+           "LEFT JOIN Product p ON p.productId = ps.productId AND p.isActive = true " +
            "WHERE s.isActive = true " +
            "GROUP BY s.sportId " +
-           "ORDER BY COUNT(DISTINCT ps.product) DESC")
+           "ORDER BY COUNT(DISTINCT p) DESC")
     List<Sport> findTopSportsByProductCount();
     
     /**

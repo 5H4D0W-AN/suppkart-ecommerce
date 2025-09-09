@@ -170,22 +170,22 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     /**
      * Find active products with pagination
      */
-    Page<Product> findByActiveTrue(Pageable pageable);
+    Page<Product> findByIsActiveTrue(Pageable pageable);
     
     /**
      * Find product by ID and active status
      */
-    Optional<Product> findByProductIdAndActiveTrue(Long productId);
+    Optional<Product> findByProductIdAndIsActiveTrue(Long productId);
     
     /**
      * Check if product exists by ID and active status
      */
-    boolean existsByProductIdAndActiveTrue(Long productId);
+    boolean existsByProductIdAndIsActiveTrue(Long productId);
     
     /**
      * Find products by brand and active status with pagination
      */
-    Page<Product> findByBrandAndActiveTrue(Brand brand, Pageable pageable);
+    Page<Product> findByBrandAndIsActiveTrue(Brand brand, Pageable pageable);
     
     /**
      * Find products by category and active status with pagination
@@ -207,7 +207,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     /**
      * Find featured products that are active
      */
-    @Query("SELECT p FROM Product p WHERE p.isActive = true AND p.isFeatured = true ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p WHERE p.isActive = true AND p.isHighlighted = true ORDER BY p.createdAt DESC")
     List<Product> findByFeaturedTrueAndActiveTrueOrderByCreatedAtDesc();
     
     /**
@@ -218,9 +218,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
            "WHERE p.isActive = true AND p.productId != :productId " +
            "AND pc.category.categoryId = :categoryId " +
            "ORDER BY p.createdAt DESC")
-    List<Product> findRelatedProducts(@Param("productId") Long productId, 
-                                    @Param("categoryId") Long categoryId, 
-                                    Pageable pageable);
+    List<Product> findRelatedProducts(@Param("productId") Long productId,
+                                      @Param("categoryId") Long categoryId,
+                                      Pageable pageable);
     
     /**
      * Find related products with limit

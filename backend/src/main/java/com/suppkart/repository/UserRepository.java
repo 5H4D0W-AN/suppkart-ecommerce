@@ -55,7 +55,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * Find users created in the last N days
      */
-    @Query("SELECT u FROM User u WHERE u.createdAt >= CURRENT_DATE - :days")
+    @Query("SELECT u FROM User u WHERE u.createdAt >= DATEADD(DAY, -:days, CURRENT_TIMESTAMP)")
     java.util.List<User> findUsersCreatedInLastDays(@Param("days") int days);
     
     /**
@@ -90,7 +90,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "LOWER(up.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(up.lastName) LIKE LOWER(CONCAT('%', :search, '%'))")
     java.util.List<User> findByEmailContainingOrUserProfile_FirstNameContainingOrUserProfile_LastNameContaining(
-        @Param("search") String search, 
-        @Param("search") String search2, 
-        @Param("search") String search3);
+            @Param("search") String search,
+            @Param("search") String search2,
+            @Param("search") String search3);
 }

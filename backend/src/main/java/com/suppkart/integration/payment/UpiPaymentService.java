@@ -21,13 +21,13 @@ public class UpiPaymentService implements PaymentService {
     
     private static final Logger logger = LoggerFactory.getLogger(UpiPaymentService.class);
     
-    @Value("${payment.phonepe.merchant-id}")
+    @Value("${app.payment.phonepe.merchant-id}")
     private String merchantId;
     
-    @Value("${payment.phonepe.salt-key}")
+    @Value("${app.payment.phonepe.salt-key}")
     private String saltKey;
     
-    @Value("${payment.phonepe.api-url:https://api.phonepe.com/apis/hermes}")
+    @Value("${app.payment.phonepe.api-url:https://api.phonepe.com/apis/hermes}")
     private String apiUrl;
     
     @Override

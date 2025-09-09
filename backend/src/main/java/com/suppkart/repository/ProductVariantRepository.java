@@ -149,10 +149,10 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     /**
      * Find variant by ID and active status
      */
-    Optional<ProductVariant> findByVariantIdAndActiveTrue(Long variantId);
+    Optional<ProductVariant> findByVariantIdAndIsActiveTrue(Long variantId);
     
     /**
      * Find active variants for a product by product ID
      */
-    List<ProductVariant> findByProduct_ProductIdAndActiveTrue(Long productId);
+    List<ProductVariant> findByProduct_ProductIdAndIsActiveTrue(Long productId);
 }

@@ -25,16 +25,16 @@ public class RazorpayPaymentService implements PaymentService {
     
     private static final Logger logger = LoggerFactory.getLogger(RazorpayPaymentService.class);
     
-    @Value("${payment.razorpay.key-id}")
+    @Value("${app.payment.razorpay.key-id}")
     private String keyId;
     
-    @Value("${payment.razorpay.key-secret}")
+    @Value("${app.payment.razorpay.key-secret}")
     private String keySecret;
     
-    @Value("${payment.razorpay.webhook-secret}")
+    @Value("${app.payment.razorpay.webhook-secret}")
     private String webhookSecret;
     
-    @Value("${payment.razorpay.api-url:https://api.razorpay.com/v1}")
+    @Value("${app.payment.razorpay.api-url:https://api.razorpay.com/v1}")
     private String apiUrl;
     
     private final RestTemplate restTemplate;

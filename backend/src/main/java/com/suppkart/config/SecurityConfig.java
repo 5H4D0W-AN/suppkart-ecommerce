@@ -13,11 +13,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -39,13 +39,8 @@ public class SecurityConfig {
     @Autowired
     private CustomOAuth2UserService customOAuth2UserService;
 
-    /**
-     * Password encoder bean
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Authentication manager bean
@@ -62,7 +57,7 @@ public class SecurityConfig {
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
+        authProvider.setPasswordEncoder(passwordEncoder);
         return authProvider;
     }
 
@@ -92,33 +87,36 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
+                // H2 Console (development only)
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
+                
                 // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/cart/**").permitAll() // Allow guest cart access
-                .requestMatchers("/api/products/**").permitAll()
-                .requestMatchers("/api/categories/**").permitAll()
-                .requestMatchers("/api/sports/**").permitAll()
-                .requestMatchers("/api/goals/**").permitAll()
-                .requestMatchers("/oauth2/**").permitAll()
-                .requestMatchers("/login/oauth2/**").permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/cart/**")).permitAll() // Allow guest cart access
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/products/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/categories/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/sports/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/goals/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/oauth2/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/login/oauth2/**")).permitAll()
                 
                 // Health check and documentation
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/api-docs/**").permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/actuator/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui.html")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/v3/api-docs/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api-docs/**")).permitAll()
                 
                 // Admin endpoints
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/users/stats").hasRole("ADMIN")
-                .requestMatchers("/api/users/{userId}").hasRole("ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/**")).hasRole("ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/stats")).hasRole("ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/{userId}")).hasRole("ADMIN")
                 
                 // Authenticated endpoints
-                .requestMatchers("/api/users/me").authenticated()
-                .requestMatchers("/api/orders/**").authenticated()
-                .requestMatchers("/api/addresses/**").authenticated()
-                .requestMatchers("/api/consultations/**").authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/me")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/orders/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/addresses/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/consultations/**")).authenticated()
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()
@@ -142,6 +140,9 @@ public class SecurityConfig {
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // Allow H2 console frames (development only)
+        http.headers(headers -> headers.frameOptions().sameOrigin());
 
         return http.build();
     }

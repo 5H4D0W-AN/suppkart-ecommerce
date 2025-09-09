@@ -135,6 +135,15 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductImage> images = new ArrayList<>();
     
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductCategory> productCategories = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductSport> productSports = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductGoal> productGoals = new ArrayList<>();
+    
     // Constructors
     public Product() {}
     
@@ -359,6 +368,30 @@ public class Product {
     
     public void setImages(List<ProductImage> images) {
         this.images = images;
+    }
+    
+    public List<ProductCategory> getProductCategories() {
+        return productCategories;
+    }
+    
+    public void setProductCategories(List<ProductCategory> productCategories) {
+        this.productCategories = productCategories;
+    }
+    
+    public List<ProductSport> getProductSports() {
+        return productSports;
+    }
+    
+    public void setProductSports(List<ProductSport> productSports) {
+        this.productSports = productSports;
+    }
+    
+    public List<ProductGoal> getProductGoals() {
+        return productGoals;
+    }
+    
+    public void setProductGoals(List<ProductGoal> productGoals) {
+        this.productGoals = productGoals;
     }
     
     // Utility methods

@@ -12,19 +12,12 @@ import com.suppkart.model.enums.RoleType;
 public interface RoleRepository extends JpaRepository<Role, Long> {
     
     /**
-     * Find role by role type
+     * Find role by name
      */
-    Optional<Role> findByRoleType(RoleType roleType);
+    Optional<Role> findByName(RoleType name);
     
     /**
-     * Check if role exists by role type
+     * Check if role exists by name
      */
-    boolean existsByRoleType(RoleType roleType);
-    
-    /**
-     * Find role by name (alias for findByRoleType)
-     */
-    default Optional<Role> findByName(RoleType roleType) {
-        return findByRoleType(roleType);
-    }
+    boolean existsByName(RoleType name);
 }

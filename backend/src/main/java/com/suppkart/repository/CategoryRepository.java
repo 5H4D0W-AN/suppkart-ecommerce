@@ -50,7 +50,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Find categories with product count
      */
     @Query("SELECT c, COUNT(DISTINCT pc.product) as productCount FROM Category c " +
-           "LEFT JOIN c.productCategories pc ON pc.product.isActive = true " +
+           "LEFT JOIN ProductCategory pc ON pc.categoryId = c.categoryId " +
+           "LEFT JOIN Product p ON pc.productId = p.productId AND p.isActive = true " +
            "WHERE c.isActive = true " +
            "GROUP BY c.categoryId " +
            "ORDER BY c.displayOrder ASC")
@@ -60,16 +61,17 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Find top categories by product count
      */
     @Query("SELECT c FROM Category c " +
-           "LEFT JOIN c.productCategories pc ON pc.product.isActive = true " +
+           "LEFT JOIN ProductCategory pc ON pc.categoryId = c.categoryId " +
+           "LEFT JOIN Product p ON pc.productId = p.productId AND p.isActive = true " +
            "WHERE c.isActive = true " +
            "GROUP BY c.categoryId " +
-           "ORDER BY COUNT(DISTINCT pc.product) DESC")
+           "ORDER BY COUNT(DISTINCT p.productId) DESC")
     List<Category> findTopCategoriesByProductCount();
     
     /**
      * Find active categories ordered by name
      */
-    List<Category> findByActiveTrueOrderByNameAsc();
+    List<Category> findByIsActiveTrueOrderByNameAsc();
     
     /**
      * Find active categories ordered by display order and name

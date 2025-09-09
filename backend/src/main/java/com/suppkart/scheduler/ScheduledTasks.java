@@ -65,7 +65,7 @@ public class ScheduledTasks {
             logger.info("Starting cleanup of expired refresh tokens...");
             
             LocalDateTime now = LocalDateTime.now();
-            List<RefreshToken> expiredTokens = refreshTokenRepository.findByExpiryDateBefore(now);
+            List<RefreshToken> expiredTokens = refreshTokenRepository.findByExpiresAtBefore(now);
             
             if (!expiredTokens.isEmpty()) {
                 logger.info("Found {} expired refresh tokens to cleanup", expiredTokens.size());

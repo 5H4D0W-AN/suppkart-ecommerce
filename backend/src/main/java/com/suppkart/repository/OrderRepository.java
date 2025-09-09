@@ -61,10 +61,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return Page<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.user = :user AND o.createdAt BETWEEN :startDate AND :endDate ORDER BY o.createdAt DESC")
-    Page<Order> findByUserAndDateRange(@Param("user") User user, 
-                                     @Param("startDate") LocalDateTime startDate, 
-                                     @Param("endDate") LocalDateTime endDate, 
-                                     Pageable pageable);
+    Page<Order> findByUserAndDateRange(@Param("user") User user,
+                                       @Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate,
+                                       Pageable pageable);
     
     /**
      * Find orders by status
@@ -88,8 +88,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.createdAt < :createdBefore")
-    List<Order> findOrdersNeedingStatusUpdate(@Param("status") OrderStatus status, 
-                                            @Param("createdBefore") LocalDateTime createdBefore);
+    List<Order> findOrdersNeedingStatusUpdate(@Param("status") OrderStatus status,
+                                              @Param("createdBefore") LocalDateTime createdBefore);
     
     /**
      * Find orders by tracking number
@@ -154,9 +154,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return Page<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.user = :user AND o.orderStatus IN :statuses ORDER BY o.createdAt DESC")
-    Page<Order> findCancellableOrdersByUser(@Param("user") User user, 
-                                          @Param("statuses") List<OrderStatus> statuses, 
-                                          Pageable pageable);
+    Page<Order> findCancellableOrdersByUser(@Param("user") User user,
+                                            @Param("statuses") List<OrderStatus> statuses,
+                                            Pageable pageable);
     
     /**
      * Find orders by coupon code usage
@@ -181,8 +181,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.deliveredAt < :deliveredBefore")
-    List<Order> findOrdersRequiringNotification(@Param("status") OrderStatus status, 
-                                               @Param("deliveredBefore") LocalDateTime deliveredBefore);
+    List<Order> findOrdersRequiringNotification(@Param("status") OrderStatus status,
+                                                @Param("deliveredBefore") LocalDateTime deliveredBefore);
     
     /**
      * Find orders by estimated delivery date range
@@ -191,6 +191,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.estimatedDeliveryDate BETWEEN :startDate AND :endDate ORDER BY o.estimatedDeliveryDate ASC")
-    List<Order> findByEstimatedDeliveryDateBetween(@Param("startDate") LocalDateTime startDate, 
-                                                 @Param("endDate") LocalDateTime endDate);
+    List<Order> findByEstimatedDeliveryDateBetween(@Param("startDate") LocalDateTime startDate,
+                                                   @Param("endDate") LocalDateTime endDate);
 }

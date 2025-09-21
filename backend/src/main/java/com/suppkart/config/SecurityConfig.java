@@ -91,14 +91,20 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
                 
                 // Public endpoints
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/cart/**")).permitAll() // Allow guest cart access
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/products/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/categories/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/sports/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/goals/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/cart/**")).permitAll() // Allow guest cart access
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/products/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/categories/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/sports/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/goals/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/home/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/oauth2/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/login/oauth2/**")).permitAll()
+                
+                // Public content management endpoints (for frontend usage)
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/blog/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pages/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/banners/**")).permitAll()
                 
                 // Health check and documentation
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/actuator/**")).permitAll()
@@ -107,19 +113,58 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/v3/api-docs/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api-docs/**")).permitAll()
                 
-                // Admin endpoints
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/**")).hasRole("ADMIN")
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/stats")).hasRole("ADMIN")
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/{userId}")).hasRole("ADMIN")
+                // Admin authentication endpoints (public)
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/auth/login")).permitAll()
+                
+                // Admin endpoints (require ADMIN or SUPER_ADMIN role)
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/auth/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/dashboard/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/products/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/orders/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/users/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/categories/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/reviews/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/consultations/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/contacts/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/referrals/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                
+                // Admin content management endpoints (require ADMIN or CONTENT_MANAGER role)
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/blog/**")).hasAnyRole("ADMIN", "CONTENT_MANAGER")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/pages/**")).hasAnyRole("ADMIN", "CONTENT_MANAGER")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/banners/**")).hasAnyRole("ADMIN", "CONTENT_MANAGER")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/seo/**")).hasAnyRole("ADMIN", "CONTENT_MANAGER")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/uploads/**")).hasAnyRole("ADMIN", "CONTENT_MANAGER")
+                
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/admin/**")).hasAnyRole("ADMIN", "SUPER_ADMIN")
+                
+                // Legacy admin endpoints (backward compatibility)
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/admin/**")).hasRole("ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/users/stats")).hasRole("ADMIN")
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/users/{userId}")).hasRole("ADMIN")
                 
                 // Authenticated endpoints
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/users/me")).authenticated()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/orders/**")).authenticated()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/addresses/**")).authenticated()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/consultations/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/users/me")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/orders/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/addresses/**")).authenticated()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/consultations/**")).authenticated()
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    // Custom authentication entry point to handle admin vs regular endpoints
+                    String requestURI = request.getRequestURI();
+                    if (requestURI.startsWith("/api/admin/")) {
+                        // For admin endpoints, return 401 Unauthorized instead of redirecting to OAuth2
+                        response.setStatus(401);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Admin authentication required\"}");
+                    } else {
+                        // For regular endpoints, redirect to OAuth2 login
+                        response.sendRedirect("/oauth2/authorization/google");
+                    }
+                })
             )
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo
@@ -142,7 +187,7 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         // Allow H2 console frames (development only)
-        http.headers(headers -> headers.frameOptions().sameOrigin());
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
 
         return http.build();
     }

@@ -173,6 +173,84 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle consultation exceptions
+     */
+    @ExceptionHandler(ConsultationException.class)
+    public ResponseEntity<ErrorResponse> handleConsultationException(
+            ConsultationException ex, WebRequest request) {
+        
+        logger.error("Consultation exception occurred: {}", ex.getMessage());
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getErrorCode(),
+                ex.getMessage(),
+                request.getDescription(false),
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
+    }
+
+    /**
+     * Handle contact exceptions
+     */
+    @ExceptionHandler(ContactException.class)
+    public ResponseEntity<ErrorResponse> handleContactException(
+            ContactException ex, WebRequest request) {
+        
+        logger.error("Contact exception occurred: {}", ex.getMessage());
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getErrorCode(),
+                ex.getMessage(),
+                request.getDescription(false),
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
+    }
+
+    /**
+     * Handle inventory exceptions
+     */
+    @ExceptionHandler(InventoryException.class)
+    public ResponseEntity<ErrorResponse> handleInventoryException(
+            InventoryException ex, WebRequest request) {
+        
+        logger.error("Inventory exception occurred: {}", ex.getMessage());
+        
+        // Determine error code and HTTP status based on exception type
+        String errorCode = "INVENTORY_ERROR";
+        HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
+        
+        if (ex instanceof InventoryException.InsufficientStockException) {
+            errorCode = "INSUFFICIENT_STOCK";
+            httpStatus = HttpStatus.BAD_REQUEST;
+        } else if (ex instanceof InventoryException.InventoryNotFoundException) {
+            errorCode = "INVENTORY_NOT_FOUND";
+            httpStatus = HttpStatus.NOT_FOUND;
+        } else if (ex instanceof InventoryException.InvalidStockAdjustmentException) {
+            errorCode = "INVALID_STOCK_ADJUSTMENT";
+            httpStatus = HttpStatus.BAD_REQUEST;
+        } else if (ex instanceof InventoryException.StockAlertNotFoundException) {
+            errorCode = "STOCK_ALERT_NOT_FOUND";
+            httpStatus = HttpStatus.NOT_FOUND;
+        } else if (ex instanceof InventoryException.DuplicateInventoryException) {
+            errorCode = "DUPLICATE_INVENTORY";
+            httpStatus = HttpStatus.CONFLICT;
+        }
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorCode,
+                ex.getMessage(),
+                request.getDescription(false),
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(errorResponse, httpStatus);
+    }
+
+    /**
      * Handle general runtime exceptions
      */
     @ExceptionHandler(RuntimeException.class)

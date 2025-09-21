@@ -13,7 +13,7 @@ import com.suppkart.dto.response.HomePageResponse;
 import com.suppkart.service.HomeService;
 
 @RestController
-@RequestMapping("/api/home")
+@RequestMapping("/home")
 public class HomeController {
     
     private static final Logger logger = LoggerFactory.getLogger(HomeController.class);

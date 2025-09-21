@@ -1,6 +1,19 @@
 package com.suppkart.exception;
 
+import org.springframework.http.HttpStatus;
+
+/**
+ * Exception thrown for order-related business logic errors
+ */
 public class OrderException extends BusinessException {
+    
+    public OrderException(String message) {
+        super("ORDER_ERROR", message);
+    }
+    
+    public OrderException(String message, Throwable cause) {
+        super("ORDER_ERROR", message, cause);
+    }
     
     public OrderException(String errorCode, String message) {
         super(errorCode, message);
@@ -10,19 +23,11 @@ public class OrderException extends BusinessException {
         super(errorCode, message, cause);
     }
     
-    public static class ErrorCodes {
-        public static final String ORDER_NOT_FOUND = "ORDER_NOT_FOUND";
-        public static final String ORDER_ALREADY_CANCELLED = "ORDER_ALREADY_CANCELLED";
-        public static final String ORDER_CANNOT_BE_CANCELLED = "ORDER_CANNOT_BE_CANCELLED";
-        public static final String ORDER_ALREADY_DELIVERED = "ORDER_ALREADY_DELIVERED";
-        public static final String INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK";
-        public static final String INVALID_ORDER_STATUS = "INVALID_ORDER_STATUS";
-        public static final String ORDER_ITEMS_EMPTY = "ORDER_ITEMS_EMPTY";
-        public static final String ORDER_CREATION_FAILED = "ORDER_CREATION_FAILED";
-        public static final String ORDER_UPDATE_FAILED = "ORDER_UPDATE_FAILED";
-        public static final String UNAUTHORIZED_ORDER_ACCESS = "UNAUTHORIZED_ORDER_ACCESS";
-        public static final String ORDER_TOTAL_MISMATCH = "ORDER_TOTAL_MISMATCH";
-        public static final String ORDER_PAYMENT_PENDING = "ORDER_PAYMENT_PENDING";
-        public static final String ORDER_PAYMENT_FAILED = "ORDER_PAYMENT_FAILED";
+    public OrderException(String errorCode, String message, HttpStatus httpStatus) {
+        super(errorCode, message, httpStatus);
+    }
+    
+    public OrderException(String errorCode, String message, HttpStatus httpStatus, Throwable cause) {
+        super(errorCode, message, httpStatus, cause);
     }
 }

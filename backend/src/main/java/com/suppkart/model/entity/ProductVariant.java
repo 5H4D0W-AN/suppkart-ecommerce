@@ -1,6 +1,7 @@
 package com.suppkart.model.entity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -255,9 +256,9 @@ public class ProductVariant {
     private void calculateDiscountPercentage() {
         if (price != null && salePrice != null && price.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal discount = price.subtract(salePrice);
-            this.discountPercentage = discount.divide(price, 4, BigDecimal.ROUND_HALF_UP)
+            this.discountPercentage = discount.divide(price, 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
         } else {
             this.discountPercentage = BigDecimal.ZERO;
         }

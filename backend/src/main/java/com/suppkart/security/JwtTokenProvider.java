@@ -147,4 +147,16 @@ public class JwtTokenProvider {
     public String generateRefreshToken() {
         return java.util.UUID.randomUUID().toString();
     }
+    
+    /**
+     * Get user ID from token
+     */
+    public Long getUserIdFromToken(String token) {
+        Claims claims = extractAllClaims(token);
+        Object userId = claims.get("userId");
+        if (userId instanceof Number) {
+            return ((Number) userId).longValue();
+        }
+        throw new RuntimeException("User ID not found in token");
+    }
 }

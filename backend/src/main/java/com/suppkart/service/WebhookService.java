@@ -237,6 +237,7 @@ public class WebhookService {
             orderId = payload.get("receipt");
         }
         if (orderId == null && payload.containsKey("order")) {
+            @SuppressWarnings("unchecked")
             Map<String, Object> orderData = (Map<String, Object>) payload.get("order");
             orderId = orderData.get("receipt");
         }

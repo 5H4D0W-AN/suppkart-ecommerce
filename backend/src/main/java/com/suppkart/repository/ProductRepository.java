@@ -218,9 +218,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
            "WHERE p.isActive = true AND p.productId != :productId " +
            "AND pc.category.categoryId = :categoryId " +
            "ORDER BY p.createdAt DESC")
-    List<Product> findRelatedProducts(@Param("productId") Long productId,
-                                      @Param("categoryId") Long categoryId,
-                                      Pageable pageable);
+    List<Product> findRelatedProducts(@Param("productId") Long productId, 
+                                    @Param("categoryId") Long categoryId, 
+                                    Pageable pageable);
     
     /**
      * Find related products with limit

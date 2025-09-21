@@ -148,6 +148,23 @@ public class User implements UserDetails {
         return firstName + " " + lastName;
     }
     
+    public String getName() {
+        return getFullName();
+    }
+    
+    public void setName(String name) {
+        // This is a convenience method - split the name into first and last
+        if (name != null && !name.trim().isEmpty()) {
+            String[] parts = name.trim().split("\\s+", 2);
+            this.firstName = parts[0];
+            this.lastName = parts.length > 1 ? parts[1] : "";
+        }
+    }
+    
+    public Long getId() {
+        return userId;
+    }
+    
     public boolean hasRole(String roleName) {
         return roles.stream()
                 .anyMatch(role -> role.getName().name().equals(roleName));

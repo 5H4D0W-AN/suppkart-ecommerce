@@ -108,8 +108,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
      */
     @Query("SELECT oi FROM OrderItem oi WHERE oi.product = :product " +
            "AND (:productVariant IS NULL OR oi.productVariant = :productVariant)")
-    List<OrderItem> findByProductAndVariant(@Param("product") Product product,
-                                            @Param("productVariant") ProductVariant productVariant);
+    List<OrderItem> findByProductAndVariant(@Param("product") Product product, 
+                                          @Param("productVariant") ProductVariant productVariant);
     
     /**
      * Check if a product has been ordered before
@@ -130,4 +130,16 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
      * @param order the order
      */
     void deleteByOrder(Order order);
+    
+    /**
+     * Check if user has purchased a specific product with delivered status
+     * @param userId the user ID
+     * @param productId the product ID
+     * @return boolean whether user has purchased the product
+     */
+    @Query("SELECT COUNT(oi) > 0 FROM OrderItem oi " +
+           "WHERE oi.order.user.userId = :userId " +
+           "AND oi.product.productId = :productId " +
+           "AND oi.order.orderStatus = 'DELIVERED'")
+    boolean hasUserPurchasedProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 }

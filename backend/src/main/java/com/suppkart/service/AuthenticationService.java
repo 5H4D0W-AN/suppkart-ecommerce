@@ -51,11 +51,21 @@ public class AuthenticationService {
 
     @Autowired
     private CartService cartService;
+    
+    @Autowired
+    private ReferralService referralService;
 
     /**
      * Register a new user
      */
     public User registerUser(String email, String password, String firstName, String lastName, String phone) {
+        return registerUser(email, password, firstName, lastName, phone, null);
+    }
+    
+    /**
+     * Register a new user with referral code
+     */
+    public User registerUser(String email, String password, String firstName, String lastName, String phone, String referralCode) {
         // Check if user already exists
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already registered");
@@ -90,6 +100,17 @@ public class AuthenticationService {
 
         // Create empty cart for the user
         cartService.createCartForUser(savedUser);
+
+        // Process referral code if provided
+        if (referralCode != null && !referralCode.trim().isEmpty()) {
+            try {
+                referralService.processNewUserRegistration(savedUser, referralCode.trim());
+            } catch (Exception e) {
+                // Log error but don't fail registration
+                // The user is already created, so we shouldn't rollback
+                System.err.println("Failed to process referral code during registration: " + e.getMessage());
+            }
+        }
 
         return savedUser;
     }

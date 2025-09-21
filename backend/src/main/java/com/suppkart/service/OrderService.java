@@ -50,6 +50,9 @@ public class OrderService {
     @Autowired
     private ProductService productService;
     
+    @Autowired
+    private ReferralService referralService;
+    
     /**
      * Process checkout and create order
      * @param checkoutRequest the checkout request
@@ -88,6 +91,15 @@ public class OrderService {
             
             // Clear user's cart
             cartService.clearUserCart(user);
+            
+            // Track first purchase for referral program
+            try {
+                referralService.trackFirstPurchase(user, order);
+            } catch (Exception e) {
+                // Log error but don't fail the order
+                logger.error("Failed to track first purchase for referral program for user {}: {}", 
+                    user.getUserId(), e.getMessage());
+            }
             
             logger.info("Successfully processed checkout for user: {}. Order ID: {}", 
                 user.getUserId(), order.getOrderId());

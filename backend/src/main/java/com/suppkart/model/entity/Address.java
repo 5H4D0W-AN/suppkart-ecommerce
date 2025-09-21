@@ -110,6 +110,10 @@ public class Address {
     }
     
     // Getters and Setters
+    public Long getId() {
+        return addressId;
+    }
+    
     public Long getAddressId() {
         return addressId;
     }
@@ -233,6 +237,10 @@ public class Address {
     // Utility methods
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+    
+    public String getStreet() {
+        return addressLine1;
     }
     
     public String getFullAddress() {

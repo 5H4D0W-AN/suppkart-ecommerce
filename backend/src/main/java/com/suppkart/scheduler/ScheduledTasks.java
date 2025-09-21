@@ -14,6 +14,7 @@ import com.suppkart.model.entity.Cart;
 import com.suppkart.model.entity.RefreshToken;
 import com.suppkart.repository.CartRepository;
 import com.suppkart.repository.RefreshTokenRepository;
+import com.suppkart.service.ReferralRewardService;
 
 @Component
 public class ScheduledTasks {
@@ -25,6 +26,9 @@ public class ScheduledTasks {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+    
+    @Autowired
+    private ReferralRewardService referralRewardService;
 
     /**
      * Clean up expired carts - runs every hour
@@ -131,6 +135,35 @@ public class ScheduledTasks {
             
         } catch (Exception e) {
             logger.error("Error logging system health metrics", e);
+        }
+    }
+    
+    /**
+     * Expire old referral rewards - runs daily at 3 AM
+     */
+    @Scheduled(cron = "0 0 3 * * *") // Daily at 3 AM
+    @Transactional
+    public void expireOldReferralRewards() {
+        try {
+            logger.info("Starting expiration of old referral rewards...");
+            referralRewardService.expireOldRewards();
+            logger.info("Completed expiration of old referral rewards");
+        } catch (Exception e) {
+            logger.error("Error during referral reward expiration", e);
+        }
+    }
+    
+    /**
+     * Activate pending referrer rewards - runs every 30 minutes
+     */
+    @Scheduled(cron = "0 */30 * * * *") // Every 30 minutes
+    @Transactional
+    public void activatePendingReferrerRewards() {
+        try {
+            logger.debug("Checking for pending referrer rewards to activate...");
+            referralRewardService.activatePendingReferrerRewards();
+        } catch (Exception e) {
+            logger.error("Error during pending referrer reward activation", e);
         }
     }
 }

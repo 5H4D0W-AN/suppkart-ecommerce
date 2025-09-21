@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,7 +18,7 @@ import com.suppkart.model.enums.OrderStatus;
 import com.suppkart.model.enums.PaymentStatus;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
     
     /**
      * Find order by order number
@@ -61,10 +62,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return Page<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.user = :user AND o.createdAt BETWEEN :startDate AND :endDate ORDER BY o.createdAt DESC")
-    Page<Order> findByUserAndDateRange(@Param("user") User user,
-                                       @Param("startDate") LocalDateTime startDate,
-                                       @Param("endDate") LocalDateTime endDate,
-                                       Pageable pageable);
+    Page<Order> findByUserAndDateRange(@Param("user") User user, 
+                                     @Param("startDate") LocalDateTime startDate, 
+                                     @Param("endDate") LocalDateTime endDate, 
+                                     Pageable pageable);
     
     /**
      * Find orders by status
@@ -88,8 +89,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.createdAt < :createdBefore")
-    List<Order> findOrdersNeedingStatusUpdate(@Param("status") OrderStatus status,
-                                              @Param("createdBefore") LocalDateTime createdBefore);
+    List<Order> findOrdersNeedingStatusUpdate(@Param("status") OrderStatus status, 
+                                            @Param("createdBefore") LocalDateTime createdBefore);
     
     /**
      * Find orders by tracking number
@@ -154,9 +155,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return Page<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.user = :user AND o.orderStatus IN :statuses ORDER BY o.createdAt DESC")
-    Page<Order> findCancellableOrdersByUser(@Param("user") User user,
-                                            @Param("statuses") List<OrderStatus> statuses,
-                                            Pageable pageable);
+    Page<Order> findCancellableOrdersByUser(@Param("user") User user, 
+                                          @Param("statuses") List<OrderStatus> statuses, 
+                                          Pageable pageable);
     
     /**
      * Find orders by coupon code usage
@@ -181,8 +182,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.deliveredAt < :deliveredBefore")
-    List<Order> findOrdersRequiringNotification(@Param("status") OrderStatus status,
-                                                @Param("deliveredBefore") LocalDateTime deliveredBefore);
+    List<Order> findOrdersRequiringNotification(@Param("status") OrderStatus status, 
+                                               @Param("deliveredBefore") LocalDateTime deliveredBefore);
     
     /**
      * Find orders by estimated delivery date range
@@ -191,6 +192,41 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return List<Order>
      */
     @Query("SELECT o FROM Order o WHERE o.estimatedDeliveryDate BETWEEN :startDate AND :endDate ORDER BY o.estimatedDeliveryDate ASC")
-    List<Order> findByEstimatedDeliveryDateBetween(@Param("startDate") LocalDateTime startDate,
-                                                   @Param("endDate") LocalDateTime endDate);
+    List<Order> findByEstimatedDeliveryDateBetween(@Param("startDate") LocalDateTime startDate, 
+                                                 @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * Find orders by creation date range
+     * @param startDate start date
+     * @param endDate end date
+     * @return List<Order>
+     */
+    @Query("SELECT o FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate ORDER BY o.createdAt ASC")
+    List<Order> findByCreatedAtBetween(@Param("startDate") LocalDateTime startDate, 
+                                     @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * Find orders by user ID
+     * @param userId the user ID
+     * @return List<Order>
+     */
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId")
+    List<Order> findByUserId(@Param("userId") Long userId);
+    
+    /**
+     * Find orders by user ID ordered by creation date descending
+     * @param userId the user ID
+     * @return List<Order>
+     */
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId ORDER BY o.createdAt DESC")
+    List<Order> findByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId);
+    
+    /**
+     * Find orders by user ID and status list
+     * @param userId the user ID
+     * @param statuses list of order statuses
+     * @return List<Order>
+     */
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderStatus IN :statuses")
+    List<Order> findByUserIdAndStatusIn(@Param("userId") Long userId, @Param("statuses") List<OrderStatus> statuses);
 }

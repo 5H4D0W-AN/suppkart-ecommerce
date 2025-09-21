@@ -191,6 +191,10 @@ public class Order {
     }
     
     // Getters and Setters
+    public Long getId() {
+        return orderId;
+    }
+    
     public Long getOrderId() {
         return orderId;
     }

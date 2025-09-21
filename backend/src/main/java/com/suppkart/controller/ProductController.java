@@ -31,7 +31,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/products")
 @Validated
 public class ProductController {
 

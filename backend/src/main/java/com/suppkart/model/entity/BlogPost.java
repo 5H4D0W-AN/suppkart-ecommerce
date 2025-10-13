@@ -1,8 +1,10 @@
 package com.suppkart.model.entity;
 
 import com.suppkart.model.enums.BlogPostStatus;
+import com.suppkart.model.enums.ContentType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -20,6 +22,7 @@ import java.util.Set;
 @Table(name = "blog_posts")
 @EntityListeners(AuditingEntityListener.class)
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class BlogPost {
@@ -37,6 +40,14 @@ public class BlogPost {
     @Column(columnDefinition = "LONGTEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    @Builder.Default
+    private ContentType contentType = ContentType.HTML;
+
+    @Column(columnDefinition = "TEXT")
+    private String excerpt;
+
     @Column(name = "featured_image", length = 500)
     private String featuredImage;
 
@@ -46,6 +57,7 @@ public class BlogPost {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private BlogPostStatus status = BlogPostStatus.DRAFT;
 
     @Column(name = "publish_date")
@@ -61,6 +73,7 @@ public class BlogPost {
     private String metaKeywords;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer views = 0;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -69,12 +82,23 @@ public class BlogPost {
         joinColumns = @JoinColumn(name = "blog_post_id"),
         inverseJoinColumns = @JoinColumn(name = "blog_category_id")
     )
+    @Builder.Default
     private Set<BlogCategory> categories = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "blog_post_tags", joinColumns = @JoinColumn(name = "blog_post_id"))
     @Column(name = "tag")
+    @Builder.Default
     private Set<String> tags = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "blog_post_suggested_products",
+        joinColumns = @JoinColumn(name = "blog_post_id"),
+        inverseJoinColumns = @JoinColumn(name = "product_id")
+    )
+    @Builder.Default
+    private Set<Product> suggestedProducts = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

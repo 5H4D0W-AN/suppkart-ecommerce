@@ -8,7 +8,26 @@ public class ApiResponse<T> {
     private boolean success;
     private String message;
     private T data;
+    private ErrorDetail error;
     private Long timestamp;
+    
+    public static class ErrorDetail {
+        private String message;
+        
+        public ErrorDetail() {}
+        
+        public ErrorDetail(String message) {
+            this.message = message;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+        
+        public void setMessage(String message) {
+            this.message = message;
+        }
+    }
     
     public ApiResponse() {
         this.timestamp = System.currentTimeMillis();
@@ -60,6 +79,14 @@ public class ApiResponse<T> {
         this.timestamp = timestamp;
     }
     
+    public ErrorDetail getError() {
+        return error;
+    }
+    
+    public void setError(ErrorDetail error) {
+        this.error = error;
+    }
+    
     // Static factory methods for convenience
     public static <T> ApiResponse<T> success(String message, T data) {
         return new ApiResponse<>(true, message, data);
@@ -70,10 +97,14 @@ public class ApiResponse<T> {
     }
     
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null);
+        ApiResponse<T> response = new ApiResponse<>(false, message, null);
+        response.setError(new ErrorDetail(message));
+        return response;
     }
     
     public static <T> ApiResponse<T> error(String message, T data) {
-        return new ApiResponse<>(false, message, data);
+        ApiResponse<T> response = new ApiResponse<>(false, message, data);
+        response.setError(new ErrorDetail(message));
+        return response;
     }
 }

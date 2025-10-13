@@ -23,6 +23,6 @@ public class BannerFilterRequest {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String title;
-    private String sortBy = "displayOrder"; // Default sort by display order
-    private String sortDirection = "ASC"; // Default ascending order
+    private String sortBy; // Sort field (defaults to displayOrder in service if null)
+    private String sortDirection; // Sort direction (defaults to ASC in service if null)
 }

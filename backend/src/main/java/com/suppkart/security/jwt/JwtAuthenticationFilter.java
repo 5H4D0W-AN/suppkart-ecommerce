@@ -3,6 +3,7 @@ package com.suppkart.security.jwt;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,11 +27,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
+    @Qualifier("customUserDetailsService")
     private UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        
+        String requestURI = request.getRequestURI();
         
         try {
             String jwt = getJwtFromRequest(request);
@@ -47,14 +51,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         
                         SecurityContextHolder.getContext().setAuthentication(authentication);
+                        logger.debug("JWT authentication successful for user: " + userEmail + " accessing: " + requestURI);
+                    } else {
+                        logger.warn("Invalid JWT token for user: " + userEmail + " accessing: " + requestURI);
                     }
+                } else {
+                    logger.warn("Unable to extract username from JWT token for request: " + requestURI);
                 }
+            } else if (requiresAuthentication(requestURI)) {
+                logger.debug("No JWT token found for protected endpoint: " + requestURI);
             }
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            logger.error("Could not set user authentication in security context for request: " + requestURI, ex);
         }
         
         filterChain.doFilter(request, response);
+    }
+    
+    /**
+     * Check if the request URI requires authentication
+     */
+    private boolean requiresAuthentication(String requestURI) {
+        return !requestURI.startsWith("/auth/") && 
+               !requestURI.startsWith("/api/auth/") &&
+               !requestURI.startsWith("/api/admin/auth/login") &&
+               !requestURI.startsWith("/products/") && 
+               !requestURI.startsWith("/categories/") &&
+               !requestURI.startsWith("/h2-console/") &&
+               !requestURI.startsWith("/swagger-ui/") &&
+               !requestURI.startsWith("/v3/api-docs/");
     }
 
     /**

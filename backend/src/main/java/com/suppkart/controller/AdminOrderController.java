@@ -3,7 +3,9 @@ package com.suppkart.controller;
 import com.suppkart.dto.admin.order.*;
 import com.suppkart.dto.response.ApiResponse;
 import com.suppkart.service.AdminOrderService;
+
 import jakarta.validation.Valid;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import com.suppkart.model.enums.PaymentStatus;
+
+import lombok.ToString;
 
 /**
  * REST Controller for Admin Order Management
@@ -61,9 +67,13 @@ public class AdminOrderController {
             OrderFilterRequest filter = new OrderFilterRequest();
             filter.setSearch(search);
             filter.setStatus(status);
-            filter.setPaymentStatus(paymentStatus);
             filter.setStartDate(startDate);
             filter.setEndDate(endDate);
+            if(paymentStatus != null) {
+                filter.setPaymentStatus(paymentStatus);
+            }else {
+                filter.setPaymentStatus(PaymentStatus.COMPLETED.toString());
+            }
             if (minAmount != null) {
                 filter.setMinAmount(new java.math.BigDecimal(minAmount));
             }
@@ -145,27 +155,6 @@ public class AdminOrderController {
             logger.error("Error creating shipment for order {}: ", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to create shipment: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * Update order notes
-     */
-    @PatchMapping("/{id}/notes")
-    public ResponseEntity<ApiResponse<OrderDetailDTO>> updateOrderNotes(
-            @PathVariable Long id,
-            @RequestParam String notes) {
-
-        try {
-            logger.info("Updating notes for order: {}", id);
-
-            OrderDetailDTO updatedOrder = adminOrderService.updateOrderNotes(id, notes);
-            return ResponseEntity.ok(ApiResponse.success("Order notes updated successfully", updatedOrder));
-
-        } catch (Exception e) {
-            logger.error("Error updating order {} notes: ", id, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to update order notes: " + e.getMessage()));
         }
     }
 

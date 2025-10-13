@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -67,8 +68,16 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     /**
      * Update user last login timestamp
      */
+    @Modifying
     @Query("UPDATE User u SET u.lastLoginAt = CURRENT_TIMESTAMP WHERE u.userId = :userId")
     void updateLastLoginAt(@Param("userId") Long userId);
+    
+    /**
+     * Update user last login timestamp with specific time
+     */
+    @Modifying
+    @Query("UPDATE User u SET u.lastLoginAt = :loginTime WHERE u.userId = :userId")
+    void updateLastLoginTime(@Param("userId") Long userId, @Param("loginTime") LocalDateTime loginTime);
     
     /**
      * Find users by status with pagination

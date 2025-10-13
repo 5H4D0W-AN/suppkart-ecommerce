@@ -9,6 +9,9 @@ public class ProductImageDTO {
     private String altText;
     private Integer sortOrder;
     private Boolean isDefault;
+    private String mediaType; // Add this field
+    private Long variantId; // Add this to identify variant images
+    private Long productId; // Add this to identify product images
 
     // Default constructor
     public ProductImageDTO() {}
@@ -20,6 +23,19 @@ public class ProductImageDTO {
         this.altText = altText;
         this.sortOrder = sortOrder;
         this.isDefault = isDefault;
+    }
+    
+    // Constructor with new fields
+    public ProductImageDTO(Long id, String url, String altText, Integer sortOrder, Boolean isDefault, 
+                          String mediaType, Long variantId, Long productId) {
+        this.id = id;
+        this.url = url;
+        this.altText = altText;
+        this.sortOrder = sortOrder;
+        this.isDefault = isDefault;
+        this.mediaType = mediaType;
+        this.variantId = variantId;
+        this.productId = productId;
     }
 
     // Getters and Setters
@@ -61,5 +77,29 @@ public class ProductImageDTO {
 
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+    
+    public String getMediaType() {
+        return mediaType;
+    }
+    
+    public void setMediaType(String mediaType) {
+        this.mediaType = mediaType;
+    }
+    
+    public Long getVariantId() {
+        return variantId;
+    }
+    
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
+    }
+    
+    public Long getProductId() {
+        return productId;
+    }
+    
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 }

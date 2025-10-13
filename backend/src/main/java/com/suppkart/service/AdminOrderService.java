@@ -130,27 +130,6 @@ public class AdminOrderService {
     }
 
     /**
-     * Update order notes
-     */
-    @Transactional
-    public OrderDetailDTO updateOrderNotes(Long id, String notes) {
-        log.debug("Updating notes for order: {}", id);
-        
-        Order order = orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
-        
-        // Note: Order entity doesn't have notes field, so we'll skip this for now
-        // In a real implementation, you would add a notes field to Order entity
-        // or create a separate OrderNotes entity
-        order.setUpdatedAt(LocalDateTime.now());
-        
-        Order savedOrder = orderRepository.save(order);
-        log.info("Notes update requested for order: {} (notes field not implemented)", id);
-        
-        return convertToOrderDetailDTO(savedOrder);
-    }
-
-    /**
      * Process refund for order
      */
     @Transactional

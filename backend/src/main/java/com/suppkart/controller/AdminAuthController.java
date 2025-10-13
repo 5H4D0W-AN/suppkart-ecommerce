@@ -30,7 +30,8 @@ public class AdminAuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<JwtAuthResponse>> login(@Valid @RequestBody AdminLoginRequest loginRequest) {
-        logger.info("Admin login request received for email: {}", loginRequest.getEmail());
+        String email = loginRequest != null ? loginRequest.getEmail() : "null";
+        logger.info("Admin login request received for email: {}", email);
         
         try {
             JwtAuthResponse authResponse = adminAuthService.authenticate(loginRequest);
@@ -44,7 +45,7 @@ public class AdminAuthController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Admin login failed for email: {}", loginRequest.getEmail(), e);
+            logger.error("Admin login failed for email: {}", email, e);
             
             ApiResponse<JwtAuthResponse> response = new ApiResponse<>(
                 false,

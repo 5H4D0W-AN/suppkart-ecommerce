@@ -1,36 +1,127 @@
 package com.suppkart.exception;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.suppkart.dto.response.ApiResponse;
+import com.suppkart.dto.response.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 
-import jakarta.validation.ConstraintViolationException;
+import java.util.HashMap;
+import java.util.Map;
 
-@RestControllerAdvice
+/**
+ * Global exception handler for the application
+ */
+@ControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
+     * Handle BusinessException
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
+        logger.warn("Business exception occurred: {} - {}", ex.getErrorCode(), ex.getMessage());
+        
+        ErrorResponse response = new ErrorResponse();
+        response.setSuccess(false);
+        response.setMessage(ex.getMessage());
+        
+        ErrorResponse.ErrorDetail error = new ErrorResponse.ErrorDetail();
+        error.setCode(ex.getErrorCode());
+        error.setMessage(ex.getMessage());
+        response.setError(error);
+        
+        return ResponseEntity.status(ex.getHttpStatus()).body(response);
+    }
+
+    /**
+     * Handle ResourceNotFoundException
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        logger.warn("Resource not found: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    /**
+     * Handle IllegalArgumentException
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("Illegal argument: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle missing request parameters
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMissingRequestParameter(MissingServletRequestParameterException ex) {
+        logger.warn("Missing request parameter: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, "Missing required parameter: " + ex.getParameterName());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle missing multipart request parts (file uploads)
+     */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMissingRequestPart(MissingServletRequestPartException ex) {
+        logger.warn("Missing request part: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, "Missing required file: " + ex.getRequestPartName());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle unsupported media type
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        logger.warn("Unsupported media type: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, "Unsupported media type. Expected: " + ex.getSupportedMediaTypes());
+        
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(response);
+    }
+
+    /**
+     * Handle malformed JSON and other message not readable exceptions
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        logger.warn("Malformed JSON or unreadable message: {}", ex.getMessage());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, "Malformed JSON or invalid request format");
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
      * Handle validation errors
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(
-            MethodArgumentNotValidException ex, WebRequest request) {
-        
-        logger.error("Validation error occurred: {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<Object>> handleValidationException(MethodArgumentNotValidException ex) {
+        logger.warn("Validation exception occurred: {}", ex.getMessage());
         
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -38,295 +129,22 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                "VALIDATION_ERROR",
-                "Validation failed",
-                errors,
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, "Validation failed");
+        response.setData(Map.of("errors", errors));
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
-     * Handle constraint violations
-     */
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolation(
-            ConstraintViolationException ex, WebRequest request) {
-        
-        logger.error("Constraint violation occurred: {}", ex.getMessage());
-        
-        Map<String, String> errors = new HashMap<>();
-        ex.getConstraintViolations().forEach(violation -> {
-            String fieldName = violation.getPropertyPath().toString();
-            String errorMessage = violation.getMessage();
-            errors.put(fieldName, errorMessage);
-        });
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                "CONSTRAINT_VIOLATION",
-                "Constraint violation",
-                errors,
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Handle authentication exceptions
-     */
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(
-            BadCredentialsException ex, WebRequest request) {
-        
-        logger.error("Authentication failed: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                "AUTHENTICATION_FAILED",
-                "Invalid credentials provided",
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
-
-    /**
-     * Handle user not found exceptions
-     */
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFound(
-            UsernameNotFoundException ex, WebRequest request) {
-        
-        logger.error("User not found: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                "USER_NOT_FOUND",
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
-
-    /**
-     * Handle custom business exceptions
-     */
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(
-            BusinessException ex, WebRequest request) {
-        
-        logger.error("Business exception occurred: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                ex.getErrorCode(),
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
-    }
-
-    /**
-     * Handle cart exceptions
-     */
-    @ExceptionHandler(CartException.class)
-    public ResponseEntity<ErrorResponse> handleCartException(
-            CartException ex, WebRequest request) {
-        
-        logger.error("Cart exception occurred: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                ex.getErrorCode(),
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
-    }
-
-    /**
-     * Handle token exceptions
-     */
-    @ExceptionHandler(TokenException.class)
-    public ResponseEntity<ErrorResponse> handleTokenException(
-            TokenException ex, WebRequest request) {
-        
-        logger.error("Token exception occurred: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                ex.getErrorCode(),
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
-    }
-
-    /**
-     * Handle consultation exceptions
-     */
-    @ExceptionHandler(ConsultationException.class)
-    public ResponseEntity<ErrorResponse> handleConsultationException(
-            ConsultationException ex, WebRequest request) {
-        
-        logger.error("Consultation exception occurred: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                ex.getErrorCode(),
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
-    }
-
-    /**
-     * Handle contact exceptions
-     */
-    @ExceptionHandler(ContactException.class)
-    public ResponseEntity<ErrorResponse> handleContactException(
-            ContactException ex, WebRequest request) {
-        
-        logger.error("Contact exception occurred: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                ex.getErrorCode(),
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
-    }
-
-    /**
-     * Handle inventory exceptions
-     */
-    @ExceptionHandler(InventoryException.class)
-    public ResponseEntity<ErrorResponse> handleInventoryException(
-            InventoryException ex, WebRequest request) {
-        
-        logger.error("Inventory exception occurred: {}", ex.getMessage());
-        
-        // Determine error code and HTTP status based on exception type
-        String errorCode = "INVENTORY_ERROR";
-        HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-        
-        if (ex instanceof InventoryException.InsufficientStockException) {
-            errorCode = "INSUFFICIENT_STOCK";
-            httpStatus = HttpStatus.BAD_REQUEST;
-        } else if (ex instanceof InventoryException.InventoryNotFoundException) {
-            errorCode = "INVENTORY_NOT_FOUND";
-            httpStatus = HttpStatus.NOT_FOUND;
-        } else if (ex instanceof InventoryException.InvalidStockAdjustmentException) {
-            errorCode = "INVALID_STOCK_ADJUSTMENT";
-            httpStatus = HttpStatus.BAD_REQUEST;
-        } else if (ex instanceof InventoryException.StockAlertNotFoundException) {
-            errorCode = "STOCK_ALERT_NOT_FOUND";
-            httpStatus = HttpStatus.NOT_FOUND;
-        } else if (ex instanceof InventoryException.DuplicateInventoryException) {
-            errorCode = "DUPLICATE_INVENTORY";
-            httpStatus = HttpStatus.CONFLICT;
-        }
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                errorCode,
-                ex.getMessage(),
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, httpStatus);
-    }
-
-    /**
-     * Handle general runtime exceptions
-     */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(
-            RuntimeException ex, WebRequest request) {
-        
-        logger.error("Runtime exception occurred: {}", ex.getMessage(), ex);
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                "INTERNAL_SERVER_ERROR",
-                "An unexpected error occurred",
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    /**
-     * Handle all other exceptions
+     * Handle generic exceptions
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
+        logger.error("Unexpected exception occurred", ex);
         
-        logger.error("Unexpected exception occurred: {}", ex.getMessage(), ex);
+        ApiResponse<Object> response = new ApiResponse<>(false, "An unexpected error occurred");
         
-        ErrorResponse errorResponse = new ErrorResponse(
-                "INTERNAL_SERVER_ERROR",
-                "An unexpected error occurred",
-                request.getDescription(false),
-                LocalDateTime.now()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    /**
-     * Error response structure
-     */
-    public static class ErrorResponse {
-        private String errorCode;
-        private String message;
-        private Map<String, String> details;
-        private String path;
-        private LocalDateTime timestamp;
-
-        public ErrorResponse(String errorCode, String message, String path, LocalDateTime timestamp) {
-            this.errorCode = errorCode;
-            this.message = message;
-            this.path = path;
-            this.timestamp = timestamp;
-        }
-
-        public ErrorResponse(String errorCode, String message, Map<String, String> details, String path, LocalDateTime timestamp) {
-            this.errorCode = errorCode;
-            this.message = message;
-            this.details = details;
-            this.path = path;
-            this.timestamp = timestamp;
-        }
-
-        // Getters and setters
-        public String getErrorCode() { return errorCode; }
-        public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
-        
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-        
-        public Map<String, String> getDetails() { return details; }
-        public void setDetails(Map<String, String> details) { this.details = details; }
-        
-        public String getPath() { return path; }
-        public void setPath(String path) { this.path = path; }
-        
-        public LocalDateTime getTimestamp() { return timestamp; }
-        public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

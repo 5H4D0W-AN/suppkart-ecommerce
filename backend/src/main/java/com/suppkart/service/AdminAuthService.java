@@ -151,8 +151,8 @@ public class AdminAuthService {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new BusinessException("ADMIN_USER_NOT_FOUND", "Admin user not found"));
         
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user);
+        // Use direct database update to avoid Hibernate collection issues
+        userRepository.updateLastLoginTime(user.getUserId(), LocalDateTime.now());
         
         logger.debug("Updated last login time for admin: {}", email);
     }

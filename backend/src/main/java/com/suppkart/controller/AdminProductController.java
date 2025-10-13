@@ -14,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,7 +57,7 @@ public class AdminProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductDetailDTO>> updateProduct(
             @PathVariable Long id,
-            @Valid @RequestBody ProductUpdateRequest request) {
+            @Valid @RequestBody ProductCreateRequest request) {
         
         logger.info("Admin updating product with ID: {}", id);
         
@@ -216,6 +218,57 @@ public class AdminProductController {
         adminProductService.updateVariantStock(variantId, quantity);
         
         ApiResponse<Void> response = ApiResponse.success("Stock updated successfully");
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Upload images for a variant
+     */
+    @PostMapping("/variants/{variantId}/images")
+    public ResponseEntity<ApiResponse<List<ProductImageDTO>>> uploadVariantImages(
+            @PathVariable Long variantId,
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(required = false) List<String> altTexts) {
+        
+        logger.info("Admin uploading {} images for variant ID: {}", files.size(), variantId);
+        
+        List<ProductImageDTO> images = adminProductService.uploadVariantImages(variantId, files, altTexts);
+        
+        ApiResponse<List<ProductImageDTO>> response = ApiResponse.success("Images uploaded successfully", images);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * Reorder variant images
+     */
+    @PutMapping("/variants/{variantId}/images/order")
+    public ResponseEntity<ApiResponse<Void>> reorderVariantImages(
+            @PathVariable Long variantId,
+            @RequestBody List<ImageOrderRequest> imageOrder) {
+        
+        logger.info("Admin reordering images for variant ID: {}", variantId);
+        
+        adminProductService.reorderVariantImages(variantId, imageOrder);
+        
+        ApiResponse<Void> response = ApiResponse.success("Images reordered successfully");
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Delete an image
+     */
+    @DeleteMapping("/images/{imageId}")
+    public ResponseEntity<ApiResponse<Void>> deleteImage(
+            @PathVariable Long imageId) {
+        
+        logger.info("Admin deleting image with ID: {}", imageId);
+        
+        adminProductService.deleteImage(imageId);
+        
+        ApiResponse<Void> response = ApiResponse.success("Image deleted successfully");
         
         return ResponseEntity.ok(response);
     }

@@ -14,8 +14,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,7 +28,7 @@ import java.util.stream.Collectors;
 public class BannerService {
 
     private final BannerRepository bannerRepository;
-    private final StorageService storageService;
+    private final FileUploadService fileUploadService;
 
     /**
      * Create a new banner
@@ -62,45 +60,25 @@ public class BannerService {
     /**
      * Update an existing banner
      */
-    public BannerDTO updateBanner(Long id, BannerUpdateRequest request) {
+    public BannerDTO updateBanner(Long id, BannerCreateRequest request) {
         log.info("Updating banner with ID: {}", id);
 
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Banner not found with ID: " + id));
 
-        // Update fields if provided
-        if (request.getTitle() != null) {
-            banner.setTitle(request.getTitle());
-        }
-        if (request.getImageUrl() != null) {
-            banner.setImageUrl(request.getImageUrl());
-        }
-        if (request.getLinkUrl() != null) {
-            banner.setLinkUrl(request.getLinkUrl());
-        }
-        if (request.getAltText() != null) {
-            banner.setAltText(request.getAltText());
-        }
-        if (request.getDisplayOrder() != null) {
-            banner.setDisplayOrder(request.getDisplayOrder());
-        }
-        if (request.getActive() != null) {
-            banner.setActive(request.getActive());
-        }
-        if (request.getStartDate() != null) {
-            banner.setStartDate(request.getStartDate());
-        }
-        if (request.getEndDate() != null) {
-            banner.setEndDate(request.getEndDate());
-        }
-        if (request.getTargetDevice() != null) {
-            banner.setTargetDevice(request.getTargetDevice());
-        }
-        if (request.getLocation() != null) {
-            banner.setLocation(request.getLocation());
-        }
-
+        // Update all fields from request
+        banner.setTitle(request.getTitle());
+        banner.setImageUrl(request.getImageUrl());
+        banner.setLinkUrl(request.getLinkUrl());
+        banner.setAltText(request.getAltText());
+        banner.setDisplayOrder(request.getDisplayOrder());
+        banner.setActive(request.getActive());
+        banner.setStartDate(request.getStartDate());
+        banner.setEndDate(request.getEndDate());
+        banner.setTargetDevice(request.getTargetDevice());
+        banner.setLocation(request.getLocation());
         banner.setUpdatedAt(LocalDateTime.now());
+
         Banner updatedBanner = bannerRepository.save(banner);
 
         log.info("Banner updated successfully with ID: {}", updatedBanner.getId());
@@ -195,7 +173,7 @@ public class BannerService {
         // Delete associated image if exists
         if (banner.getImageUrl() != null && !banner.getImageUrl().isEmpty()) {
             try {
-                storageService.deleteFile(banner.getImageUrl());
+                fileUploadService.deleteFile(banner.getImageUrl());
             } catch (Exception e) {
                 log.warn("Failed to delete banner image: {}", banner.getImageUrl(), e);
             }
@@ -243,14 +221,9 @@ public class BannerService {
     public String uploadBannerImage(MultipartFile file) {
         log.info("Uploading banner image: {}", file.getOriginalFilename());
 
-        try {
-            String imageUrl = storageService.uploadImage(file, "banners");
-            log.info("Banner image uploaded successfully: {}", imageUrl);
-            return imageUrl;
-        } catch (IOException e) {
-            log.error("Failed to upload banner image: {}", file.getOriginalFilename(), e);
-            throw new RuntimeException("Failed to upload banner image: " + e.getMessage(), e);
-        }
+        String imageUrl = fileUploadService.uploadFile(file, "banners");
+        log.info("Banner image uploaded successfully: {}", imageUrl);
+        return imageUrl;
     }
 
     /**
@@ -293,11 +266,15 @@ public class BannerService {
     }
 
     /**
-     * Create sort object
+     * Create sort object with configurable defaults
      */
     private Sort createSort(String sortBy, String sortDirection) {
-        String field = sortBy != null ? sortBy : "displayOrder";
+        // Default to displayOrder if not specified - this is the business requirement for banner ordering
+        String field = (sortBy != null && !sortBy.trim().isEmpty()) ? sortBy : "displayOrder";
+        
+        // Default to ASC if not specified
         Sort.Direction direction = "DESC".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        
         return Sort.by(direction, field);
     }
 

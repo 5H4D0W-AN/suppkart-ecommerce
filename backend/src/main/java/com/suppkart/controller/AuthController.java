@@ -53,7 +53,8 @@ public class AuthController {
                     registerRequest.getPassword(),
                     registerRequest.getFirstName(),
                     registerRequest.getLastName(),
-                    registerRequest.getPhone()
+                    registerRequest.getPhone(),
+                    registerRequest.getReferralCode()
             );
 
             // Generate tokens
@@ -96,12 +97,8 @@ public class AuthController {
             String accessToken = authenticationService.generateAccessToken(authentication);
             RefreshToken refreshToken = authenticationService.generateRefreshToken(user);
 
-            // Update last login
-            user.setLastLoginAt(java.time.LocalDateTime.now());
-            userService.updateUserProfile(user.getUserId(), 
-                    user.getUserProfile().getFirstName(),
-                    user.getUserProfile().getLastName(),
-                    user.getUserProfile().getPhone());
+            // Update last login time without triggering merge
+            userService.updateLastLoginTime(user.getUserId());
 
             // Create response
             UserResponse userResponse = mapToUserResponse(user);
@@ -110,8 +107,9 @@ public class AuthController {
             return ResponseEntity.ok(authResponse);
 
         } catch (Exception e) {
+            e.printStackTrace(); // Add this for debugging
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Error: Invalid credentials - " + e.getMessage());
+                    .body("Error: Invalid credentials - " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
@@ -122,7 +120,7 @@ public class AuthController {
     public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         try {
             String refreshTokenValue = request.getRefreshToken();
-            
+
             // Validate refresh token
             if (!authenticationService.isRefreshTokenValid(refreshTokenValue)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -131,11 +129,11 @@ public class AuthController {
 
             // Generate new access token
             String newAccessToken = authenticationService.refreshAccessToken(refreshTokenValue);
-            
+
             // Get user for response
             User user = authenticationService.getUserByRefreshToken(refreshTokenValue);
             UserResponse userResponse = mapToUserResponse(user);
-            
+
             AuthResponse authResponse = new AuthResponse(newAccessToken, refreshTokenValue, userResponse);
 
             return ResponseEntity.ok(authResponse);
@@ -167,7 +165,7 @@ public class AuthController {
         UserResponse userResponse = new UserResponse();
         userResponse.setUserId(user.getUserId());
         userResponse.setEmail(user.getEmail());
-        
+
         UserProfile profile = user.getUserProfile();
         if (profile != null) {
             userResponse.setFirstName(profile.getFirstName());
@@ -178,19 +176,21 @@ public class AuthController {
             userResponse.setLastName(user.getLastName());
             userResponse.setPhone(user.getPhone());
         }
-        
+
         userResponse.setAuthProvider(user.getAuthProvider());
         userResponse.setStatus(user.getStatus());
         userResponse.setEmailVerified(user.getEmailVerified());
         userResponse.setLastLoginAt(user.getLastLoginAt());
         userResponse.setCreatedAt(user.getCreatedAt());
-        
+
         // Map roles
-        Set<String> roles = user.getRoles().stream()
-                .map(role -> role.getName().name())
-                .collect(Collectors.toSet());
+        Set<String> roles = user.getRoles() != null
+                ? user.getRoles().stream()
+                        .map(role -> role.getName().name())
+                        .collect(Collectors.toSet())
+                : Set.of();
         userResponse.setRoles(roles);
-        
+
         return userResponse;
     }
 }

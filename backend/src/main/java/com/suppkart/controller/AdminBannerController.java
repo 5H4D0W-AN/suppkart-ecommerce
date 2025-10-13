@@ -2,7 +2,7 @@ package com.suppkart.controller;
 
 import com.suppkart.dto.content.BannerDTO;
 import com.suppkart.dto.content.BannerCreateRequest;
-import com.suppkart.dto.content.BannerUpdateRequest;
+
 import com.suppkart.dto.content.BannerFilterRequest;
 import com.suppkart.dto.content.BannerOrderRequest;
 import com.suppkart.dto.response.ApiResponse;
@@ -54,7 +54,7 @@ public class AdminBannerController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BannerDTO>> updateBanner(
             @PathVariable Long id,
-            @Valid @RequestBody BannerUpdateRequest request) {
+            @Valid @RequestBody BannerCreateRequest request) {
         log.info("Updating banner with ID: {}", id);
         
         BannerDTO banner = bannerService.updateBanner(id, request);

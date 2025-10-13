@@ -98,8 +98,13 @@ public class JwtTokenProvider {
      * Validate token
      */
     public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        try {
+            final String username = extractUsername(token);
+            return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        } catch (Exception e) {
+            // Token is invalid (expired, malformed, etc.)
+            return false;
+        }
     }
 
     /**

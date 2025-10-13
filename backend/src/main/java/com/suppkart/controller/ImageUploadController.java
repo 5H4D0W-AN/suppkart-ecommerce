@@ -1,7 +1,7 @@
 package com.suppkart.controller;
 
 import com.suppkart.dto.response.ApiResponse;
-import com.suppkart.service.StorageService;
+import com.suppkart.service.FileUploadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,7 @@ public class ImageUploadController {
     private static final Logger log = LoggerFactory.getLogger(ImageUploadController.class);
     
     @Autowired
-    private StorageService storageService;
+    private FileUploadService fileUploadService;
 
     /**
      * Upload image for rich text editor
@@ -56,7 +56,7 @@ public class ImageUploadController {
             }
             
             // Upload file to storage
-            String imageUrl = storageService.uploadFile(file, "content/images");
+            String imageUrl = fileUploadService.uploadFile(file, "content/images");
             
             // Return response in format expected by rich text editors
             Map<String, String> response = new HashMap<>();
@@ -82,7 +82,7 @@ public class ImageUploadController {
         log.info("Deleting image: {}", imageUrl);
         
         try {
-            storageService.deleteFile(imageUrl);
+            fileUploadService.deleteFile(imageUrl);
             log.info("Image deleted successfully: {}", imageUrl);
             return ResponseEntity.ok(ApiResponse.success("Image deleted successfully"));
             
@@ -136,7 +136,7 @@ public class ImageUploadController {
                     }
                     
                     // Upload file
-                    String imageUrl = storageService.uploadFile(file, "content/images");
+                    String imageUrl = fileUploadService.uploadFile(file, "content/images");
                     successfulUploads.put(file.getOriginalFilename(), imageUrl);
                     
                 } catch (Exception e) {

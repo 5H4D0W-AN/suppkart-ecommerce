@@ -21,6 +21,8 @@ import com.suppkart.model.entity.User;
 import com.suppkart.model.entity.UserProfile;
 import com.suppkart.service.GoogleAuthService;
 
+
+// ToDo: Not in use right now, redundant, with redundant functions-- to be removed
 @RestController
 @RequestMapping("/api/auth/oauth2")
 public class GoogleAuthController {

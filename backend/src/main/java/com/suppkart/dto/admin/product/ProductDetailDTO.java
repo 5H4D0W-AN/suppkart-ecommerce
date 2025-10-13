@@ -12,8 +12,7 @@ public class ProductDetailDTO {
     private String sku;
     private String description;
     private String shortDescription;
-    private BigDecimal price;
-    private int stock;
+    // Price and stock removed - these are at variant level
     private List<CategoryDTO> categories;
     private String status;
     private List<ProductImageDTO> images;
@@ -86,21 +85,7 @@ public class ProductDetailDTO {
         this.shortDescription = shortDescription;
     }
     
-    public BigDecimal getPrice() {
-        return price;
-    }
-    
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-    
-    public int getStock() {
-        return stock;
-    }
-    
-    public void setStock(int stock) {
-        this.stock = stock;
-    }
+    // Price and stock getters/setters removed
     
     public List<CategoryDTO> getCategories() {
         return categories;

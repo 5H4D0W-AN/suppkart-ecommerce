@@ -1,6 +1,8 @@
 package com.suppkart.dto.admin.product;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,6 +23,23 @@ public class ProductVariantDTO {
     private Boolean active;
     private Boolean isDefault;
     private Map<String, String> attributes;
+    
+    // New fields for enhanced functionality
+    private LocalDateTime discountStartDate;
+    private LocalDateTime discountEndDate;
+    private String discountReason;
+    private Boolean codEligible;
+    
+    // SEO fields
+    private String metaTitle;
+    private String metaDescription;
+    private String metaKeywords;
+    
+    // Images
+    private List<ProductImageDTO> images;
+    
+    // Barcode for variant
+    private String barcode;
 
     // Default constructor
     public ProductVariantDTO() {}
@@ -145,5 +164,78 @@ public class ProductVariantDTO {
 
     public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
+    }
+    
+    // Getters and setters for new fields
+    public LocalDateTime getDiscountStartDate() {
+        return discountStartDate;
+    }
+    
+    public void setDiscountStartDate(LocalDateTime discountStartDate) {
+        this.discountStartDate = discountStartDate;
+    }
+    
+    public LocalDateTime getDiscountEndDate() {
+        return discountEndDate;
+    }
+    
+    public void setDiscountEndDate(LocalDateTime discountEndDate) {
+        this.discountEndDate = discountEndDate;
+    }
+    
+    public String getDiscountReason() {
+        return discountReason;
+    }
+    
+    public void setDiscountReason(String discountReason) {
+        this.discountReason = discountReason;
+    }
+    
+    public Boolean getCodEligible() {
+        return codEligible;
+    }
+    
+    public void setCodEligible(Boolean codEligible) {
+        this.codEligible = codEligible;
+    }
+    
+    public String getMetaTitle() {
+        return metaTitle;
+    }
+    
+    public void setMetaTitle(String metaTitle) {
+        this.metaTitle = metaTitle;
+    }
+    
+    public String getMetaDescription() {
+        return metaDescription;
+    }
+    
+    public void setMetaDescription(String metaDescription) {
+        this.metaDescription = metaDescription;
+    }
+    
+    public String getMetaKeywords() {
+        return metaKeywords;
+    }
+    
+    public void setMetaKeywords(String metaKeywords) {
+        this.metaKeywords = metaKeywords;
+    }
+    
+    public List<ProductImageDTO> getImages() {
+        return images;
+    }
+    
+    public void setImages(List<ProductImageDTO> images) {
+        this.images = images;
+    }
+    
+    public String getBarcode() {
+        return barcode;
+    }
+    
+    public void setBarcode(String barcode) {
+        this.barcode = barcode;
     }
 }

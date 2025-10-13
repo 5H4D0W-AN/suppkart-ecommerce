@@ -138,11 +138,27 @@ public class UserService {
     }
 
     /**
+     * Update last login time
+     */
+    @Transactional
+    public void updateLastLoginTime(Long userId) {
+        userRepository.updateLastLoginTime(userId, LocalDateTime.now());
+    }
+
+    /**
      * Save user profile
      */
     public UserProfile saveUserProfile(UserProfile userProfile) {
         userProfile.setUpdatedAt(LocalDateTime.now());
         return userProfileRepository.save(userProfile);
+    }
+
+    /**
+     * Save user
+     */
+    public User save(User user) {
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(user);
     }
 
     /**

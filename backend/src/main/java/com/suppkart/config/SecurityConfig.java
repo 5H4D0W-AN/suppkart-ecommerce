@@ -3,6 +3,7 @@ package com.suppkart.config;
 import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +32,7 @@ import com.suppkart.security.oauth.CustomOAuth2UserService;
 public class SecurityConfig {
 
     @Autowired
+    @Qualifier("customUserDetailsService")
     private UserDetailsService userDetailsService;
 
     @Autowired
@@ -92,6 +94,7 @@ public class SecurityConfig {
                 
                 // Public endpoints
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/cart/**")).permitAll() // Allow guest cart access
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/products/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/categories/**")).permitAll()

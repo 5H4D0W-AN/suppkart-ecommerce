@@ -19,10 +19,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product_variants")
@@ -67,8 +72,35 @@ public class ProductVariant {
     @Column(name = "sale_price", precision = 10, scale = 2)
     private BigDecimal salePrice;
     
+    @DecimalMax(value = "40.0", message = "Discount cannot exceed 40%")
     @Column(name = "discount_percentage", precision = 5, scale = 2)
     private BigDecimal discountPercentage = BigDecimal.ZERO;
+    
+    @Column(name = "discount_start_date")
+    private LocalDateTime discountStartDate;
+    
+    @Column(name = "discount_end_date")
+    private LocalDateTime discountEndDate;
+    
+    @Size(max = 50)
+    @Column(name = "discount_reason", length = 50)
+    private String discountReason;
+    
+    @Column(name = "cod_eligible", nullable = false)
+    private Boolean codEligible = true;
+    
+    // SEO fields for variant-level SEO
+    @Size(max = 255)
+    @Column(name = "meta_title")
+    private String metaTitle;
+    
+    @Size(max = 500)
+    @Column(name = "meta_description", length = 500)
+    private String metaDescription;
+    
+    @Size(max = 255)
+    @Column(name = "meta_keywords")
+    private String metaKeywords;
     
     @NotNull
     @PositiveOrZero
@@ -87,6 +119,10 @@ public class ProductVariant {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
     
+    @Size(max = 100)
+    @Column(name = "barcode", length = 100)
+    private String barcode;
+    
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -94,6 +130,10 @@ public class ProductVariant {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    
+    // Add relationship to images
+    @OneToMany(mappedBy = "variant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductImage> variantImages = new ArrayList<>();
     
     // Constructors
     public ProductVariant() {}
@@ -234,6 +274,79 @@ public class ProductVariant {
     
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    // Getters and setters for new fields
+    public LocalDateTime getDiscountStartDate() {
+        return discountStartDate;
+    }
+    
+    public void setDiscountStartDate(LocalDateTime discountStartDate) {
+        this.discountStartDate = discountStartDate;
+    }
+    
+    public LocalDateTime getDiscountEndDate() {
+        return discountEndDate;
+    }
+    
+    public void setDiscountEndDate(LocalDateTime discountEndDate) {
+        this.discountEndDate = discountEndDate;
+    }
+    
+    public String getDiscountReason() {
+        return discountReason;
+    }
+    
+    public void setDiscountReason(String discountReason) {
+        this.discountReason = discountReason;
+    }
+    
+    public Boolean getCodEligible() {
+        return codEligible;
+    }
+    
+    public void setCodEligible(Boolean codEligible) {
+        this.codEligible = codEligible;
+    }
+    
+    public String getMetaTitle() {
+        return metaTitle;
+    }
+    
+    public void setMetaTitle(String metaTitle) {
+        this.metaTitle = metaTitle;
+    }
+    
+    public String getMetaDescription() {
+        return metaDescription;
+    }
+    
+    public void setMetaDescription(String metaDescription) {
+        this.metaDescription = metaDescription;
+    }
+    
+    public String getMetaKeywords() {
+        return metaKeywords;
+    }
+    
+    public void setMetaKeywords(String metaKeywords) {
+        this.metaKeywords = metaKeywords;
+    }
+    
+    public List<ProductImage> getVariantImages() {
+        return variantImages;
+    }
+    
+    public void setVariantImages(List<ProductImage> variantImages) {
+        this.variantImages = variantImages;
+    }
+    
+    public String getBarcode() {
+        return barcode;
+    }
+    
+    public void setBarcode(String barcode) {
+        this.barcode = barcode;
     }
     
     // Utility methods

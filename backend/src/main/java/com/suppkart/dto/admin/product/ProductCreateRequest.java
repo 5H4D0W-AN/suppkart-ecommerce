@@ -22,25 +22,25 @@ public class ProductCreateRequest {
     @Size(max = 500, message = "Short description must not exceed 500 characters")
     private String shortDescription;
     
-    @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
-    @Digits(integer = 8, fraction = 2, message = "Price must have at most 8 integer digits and 2 decimal places")
-    private BigDecimal price;
-    
-    @Min(value = 0, message = "Stock must be non-negative")
-    private int stock;
+    // Price and stock removed - these belong to variants
     
     @NotEmpty(message = "At least one category is required")
     private List<Long> categoryIds;
     
     @NotBlank(message = "Status is required")
-    @Pattern(regexp = "ACTIVE|INACTIVE|OUT_OF_STOCK", message = "Status must be ACTIVE, INACTIVE, or OUT_OF_STOCK")
+    @Pattern(regexp = "ACTIVE|INACTIVE", message = "Status must be ACTIVE or INACTIVE")
     private String status;
     
-    private boolean hasVariants = false;
+    // hasVariants removed - every product has variants
     
     @Valid
+    @NotNull(message = "At least one variant is required")
+    @Size(min = 1, message = "Product must have at least one variant")
     private List<ProductVariantRequest> variants;
+    
+    // New fields for enhanced functionality
+    private Boolean codEligible = true;
+    private Boolean autoGenerateSeo = true;
     
     private Map<String, String> specifications;
     
@@ -81,8 +81,7 @@ public class ProductCreateRequest {
     @Size(max = 50, message = "Dimensions must not exceed 50 characters")
     private String dimensions;
     
-    @Size(max = 100, message = "Barcode must not exceed 100 characters")
-    private String barcode;
+    // Barcode removed - belongs to variants since each variant has unique barcode
     
     @Min(value = 1, message = "Low stock threshold must be at least 1")
     private int lowStockThreshold = 10;
@@ -128,21 +127,7 @@ public class ProductCreateRequest {
         this.shortDescription = shortDescription;
     }
     
-    public BigDecimal getPrice() {
-        return price;
-    }
-    
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-    
-    public int getStock() {
-        return stock;
-    }
-    
-    public void setStock(int stock) {
-        this.stock = stock;
-    }
+    // Price and stock getters/setters removed
     
     public List<Long> getCategoryIds() {
         return categoryIds;
@@ -160,13 +145,7 @@ public class ProductCreateRequest {
         this.status = status;
     }
     
-    public boolean isHasVariants() {
-        return hasVariants;
-    }
-    
-    public void setHasVariants(boolean hasVariants) {
-        this.hasVariants = hasVariants;
-    }
+    // hasVariants getters/setters removed
     
     public List<ProductVariantRequest> getVariants() {
         return variants;
@@ -280,13 +259,7 @@ public class ProductCreateRequest {
         this.dimensions = dimensions;
     }
     
-    public String getBarcode() {
-        return barcode;
-    }
-    
-    public void setBarcode(String barcode) {
-        this.barcode = barcode;
-    }
+    // Barcode getters/setters removed
     
     public int getLowStockThreshold() {
         return lowStockThreshold;
@@ -318,5 +291,21 @@ public class ProductCreateRequest {
     
     public void setGoalIds(List<Long> goalIds) {
         this.goalIds = goalIds;
+    }
+    
+    public Boolean getCodEligible() {
+        return codEligible;
+    }
+    
+    public void setCodEligible(Boolean codEligible) {
+        this.codEligible = codEligible;
+    }
+    
+    public Boolean getAutoGenerateSeo() {
+        return autoGenerateSeo;
+    }
+    
+    public void setAutoGenerateSeo(Boolean autoGenerateSeo) {
+        this.autoGenerateSeo = autoGenerateSeo;
     }
 }

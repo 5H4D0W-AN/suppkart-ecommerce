@@ -3,10 +3,11 @@ package com.suppkart.controller;
 import com.suppkart.dto.content.BlogPostDTO;
 import com.suppkart.dto.content.BlogPostListItemDTO;
 import com.suppkart.dto.content.BlogPostCreateRequest;
-import com.suppkart.dto.content.BlogPostUpdateRequest;
+
 import com.suppkart.dto.content.BlogPostFilterRequest;
 import com.suppkart.dto.content.BlogCategoryDTO;
 import com.suppkart.dto.content.BlogCategoryRequest;
+import com.suppkart.dto.content.SuggestedProductDTO;
 import com.suppkart.dto.response.ApiResponse;
 import com.suppkart.service.BlogService;
 import jakarta.validation.Valid;
@@ -22,12 +23,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
- * Admin Blog Controller for managing blog posts and categories
- * Requires ADMIN or CONTENT_MANAGER role for all operations
+ * Admin Blog Controller for managing blog posts and categories Requires ADMIN
+ * or CONTENT_MANAGER role for all operations
  */
 @RestController
 @RequestMapping("/api/admin/blog")
@@ -38,8 +38,6 @@ public class AdminBlogController {
 
     private final BlogService blogService;
 
-    // ==================== BLOG POST ENDPOINTS ====================
-
     /**
      * Create a new blog post
      */
@@ -47,9 +45,9 @@ public class AdminBlogController {
     public ResponseEntity<ApiResponse<BlogPostDTO>> createBlogPost(
             @Valid @RequestBody BlogPostCreateRequest request) {
         log.info("Creating new blog post with title: {}", request.getTitle());
-        
+
         BlogPostDTO blogPost = blogService.createBlogPost(request);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Blog post created successfully", blogPost));
     }
@@ -60,11 +58,11 @@ public class AdminBlogController {
     @PutMapping("/posts/{id}")
     public ResponseEntity<ApiResponse<BlogPostDTO>> updateBlogPost(
             @PathVariable Long id,
-            @Valid @RequestBody BlogPostUpdateRequest request) {
+            @Valid @RequestBody BlogPostCreateRequest request) {
         log.info("Updating blog post with ID: {}", id);
-        
+
         BlogPostDTO blogPost = blogService.updateBlogPost(id, request);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog post updated successfully", blogPost));
     }
 
@@ -74,9 +72,9 @@ public class AdminBlogController {
     @GetMapping("/posts/{id}")
     public ResponseEntity<ApiResponse<BlogPostDTO>> getBlogPostById(@PathVariable Long id) {
         log.info("Fetching blog post with ID: {}", id);
-        
+
         BlogPostDTO blogPost = blogService.getBlogPostById(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog post retrieved successfully", blogPost));
     }
 
@@ -88,9 +86,9 @@ public class AdminBlogController {
             @ModelAttribute BlogPostFilterRequest filter,
             @PageableDefault(size = 20) Pageable pageable) {
         log.info("Fetching blog posts with filter: {}", filter);
-        
+
         Page<BlogPostListItemDTO> blogPosts = blogService.getAllBlogPosts(filter, pageable);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog posts retrieved successfully", blogPosts));
     }
 
@@ -100,9 +98,9 @@ public class AdminBlogController {
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteBlogPost(@PathVariable Long id) {
         log.info("Deleting blog post with ID: {}", id);
-        
+
         blogService.deleteBlogPost(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog post deleted successfully"));
     }
 
@@ -112,9 +110,9 @@ public class AdminBlogController {
     @PatchMapping("/posts/{id}/publish")
     public ResponseEntity<ApiResponse<BlogPostDTO>> publishBlogPost(@PathVariable Long id) {
         log.info("Publishing blog post with ID: {}", id);
-        
+
         BlogPostDTO blogPost = blogService.publishBlogPost(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog post published successfully", blogPost));
     }
 
@@ -124,9 +122,9 @@ public class AdminBlogController {
     @PatchMapping("/posts/{id}/unpublish")
     public ResponseEntity<ApiResponse<BlogPostDTO>> unpublishBlogPost(@PathVariable Long id) {
         log.info("Unpublishing blog post with ID: {}", id);
-        
+
         BlogPostDTO blogPost = blogService.unpublishBlogPost(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog post unpublished successfully", blogPost));
     }
 
@@ -137,28 +135,41 @@ public class AdminBlogController {
     public ResponseEntity<ApiResponse<String>> uploadBlogImage(
             @RequestParam("file") MultipartFile file) {
         log.info("Uploading blog image: {}", file.getOriginalFilename());
-        
+
         try {
             String imageUrl = blogService.uploadBlogImage(file);
             return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", imageUrl));
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to upload blog image: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to upload image: " + e.getMessage()));
         }
     }
 
-    // ==================== BLOG CATEGORY ENDPOINTS ====================
+    /**
+     * Get available products for suggestion selection
+     */
+    @GetMapping("/products/available")
+    public ResponseEntity<ApiResponse<Page<SuggestedProductDTO>>> getAvailableProducts(
+            @RequestParam(defaultValue = "") String search,
+            @PageableDefault(size = 20) Pageable pageable) {
+        log.info("Fetching available products for blog suggestions with search: {}", search);
 
+        Page<SuggestedProductDTO> products = blogService.getAvailableProductsForSuggestion(search, pageable);
+
+        return ResponseEntity.ok(ApiResponse.success("Available products retrieved successfully", products));
+    }
+
+    // ==================== BLOG CATEGORY ENDPOINTS ====================
     /**
      * Get all blog categories
      */
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<BlogCategoryDTO>>> getAllBlogCategories() {
         log.info("Fetching all blog categories");
-        
+
         List<BlogCategoryDTO> categories = blogService.getAllBlogCategories();
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog categories retrieved successfully", categories));
     }
 
@@ -169,9 +180,9 @@ public class AdminBlogController {
     public ResponseEntity<ApiResponse<BlogCategoryDTO>> createBlogCategory(
             @Valid @RequestBody BlogCategoryRequest request) {
         log.info("Creating new blog category with name: {}", request.getName());
-        
+
         BlogCategoryDTO category = blogService.createBlogCategory(request);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Blog category created successfully", category));
     }
@@ -184,9 +195,9 @@ public class AdminBlogController {
             @PathVariable Long id,
             @Valid @RequestBody BlogCategoryRequest request) {
         log.info("Updating blog category with ID: {}", id);
-        
+
         BlogCategoryDTO category = blogService.updateBlogCategory(id, request);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog category updated successfully", category));
     }
 
@@ -196,9 +207,9 @@ public class AdminBlogController {
     @DeleteMapping("/categories/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteBlogCategory(@PathVariable Long id) {
         log.info("Deleting blog category with ID: {}", id);
-        
+
         blogService.deleteBlogCategory(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Blog category deleted successfully"));
     }
 }

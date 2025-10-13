@@ -22,8 +22,11 @@ public class RegisterRequest {
     @Size(max = 50, message = "Last name must not exceed 50 characters")
     private String lastName;
     
-    @Size(max = 20, message = "Phone number must not exceed 20 characters")
+    @Size(max = 10, message = "Phone number must not exceed 10 characters")
     private String phone;
+    
+    @Size(max = 20, message = "Referral code must not exceed 20 characters")
+    private String referralCode;
     
     // Constructors
     public RegisterRequest() {}
@@ -34,6 +37,15 @@ public class RegisterRequest {
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;
+    }
+    
+    public RegisterRequest(String email, String password, String firstName, String lastName, String phone, String referralCode) {
+        this.email = email;
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+        this.referralCode = referralCode;
     }
     
     // Getters and Setters
@@ -75,5 +87,13 @@ public class RegisterRequest {
     
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+    
+    public String getReferralCode() {
+        return referralCode;
+    }
+    
+    public void setReferralCode(String referralCode) {
+        this.referralCode = referralCode;
     }
 }

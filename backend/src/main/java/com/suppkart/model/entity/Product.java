@@ -60,9 +60,7 @@ public class Product {
     @Column(name = "sku", nullable = false, unique = true, length = 100)
     private String sku;
     
-    @Size(max = 100)
-    @Column(name = "barcode", length = 100)
-    private String barcode;
+    // Barcode removed - belongs to variants
     
     @Column(name = "weight", precision = 8, scale = 2)
     private BigDecimal weight; // in grams
@@ -119,6 +117,12 @@ public class Product {
     
     @Column(name = "low_stock_threshold", nullable = false)
     private Integer lowStockThreshold = 2;
+    
+    @Column(name = "cod_eligible", nullable = false)
+    private Boolean codEligible = true;
+    
+    @Column(name = "auto_generate_seo", nullable = false)
+    private Boolean autoGenerateSeo = true;
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -202,13 +206,7 @@ public class Product {
         this.sku = sku;
     }
     
-    public String getBarcode() {
-        return barcode;
-    }
-    
-    public void setBarcode(String barcode) {
-        this.barcode = barcode;
-    }
+    // Barcode getters/setters removed
     
     public BigDecimal getWeight() {
         return weight;
@@ -336,6 +334,22 @@ public class Product {
     
     public void setLowStockThreshold(Integer lowStockThreshold) {
         this.lowStockThreshold = lowStockThreshold;
+    }
+    
+    public Boolean getCodEligible() {
+        return codEligible;
+    }
+    
+    public void setCodEligible(Boolean codEligible) {
+        this.codEligible = codEligible;
+    }
+    
+    public Boolean getAutoGenerateSeo() {
+        return autoGenerateSeo;
+    }
+    
+    public void setAutoGenerateSeo(Boolean autoGenerateSeo) {
+        this.autoGenerateSeo = autoGenerateSeo;
     }
     
     public LocalDateTime getCreatedAt() {

@@ -4,10 +4,12 @@ import com.suppkart.dto.content.*;
 import com.suppkart.exception.ResourceNotFoundException;
 import com.suppkart.model.entity.BlogCategory;
 import com.suppkart.model.entity.BlogPost;
+import com.suppkart.model.entity.Product;
 import com.suppkart.model.entity.User;
 import com.suppkart.model.enums.BlogPostStatus;
 import com.suppkart.repository.BlogCategoryRepository;
 import com.suppkart.repository.BlogPostRepository;
+import com.suppkart.repository.ProductRepository;
 import com.suppkart.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -41,10 +42,13 @@ public class BlogService {
     private UserRepository userRepository;
 
     @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
     private SlugGenerator slugGenerator;
 
     @Autowired
-    private StorageService storageService;
+    private FileUploadService fileUploadService;
 
     /**
      * Create a new blog post
@@ -67,7 +71,16 @@ public class BlogService {
         if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
             categories = request.getCategoryIds().stream()
                     .map(id -> blogCategoryRepository.findById(id)
-                            .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id)))
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id)))
+                    .collect(Collectors.toSet());
+        }
+
+        // Get suggested products
+        Set<Product> suggestedProducts = new HashSet<>();
+        if (request.getSuggestedProductIds() != null && !request.getSuggestedProductIds().isEmpty()) {
+            suggestedProducts = request.getSuggestedProductIds().stream()
+                    .map(id -> productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id)))
                     .collect(Collectors.toSet());
         }
 
@@ -76,16 +89,19 @@ public class BlogService {
         blogPost.setTitle(request.getTitle());
         blogPost.setSlug(slug);
         blogPost.setContent(request.getContent());
+        blogPost.setContentType(request.getContentType());
+        blogPost.setExcerpt(request.getExcerpt());
         blogPost.setFeaturedImage(request.getFeaturedImage());
         blogPost.setAuthor(author);
         blogPost.setStatus(request.getStatus() != null ? request.getStatus() : BlogPostStatus.DRAFT);
         blogPost.setPublishDate(request.getPublishDate());
         blogPost.setCategories(categories);
+        blogPost.setSuggestedProducts(suggestedProducts);
         blogPost.setTags(request.getTags() != null ? request.getTags() : new HashSet<>());
         blogPost.setMetaTitle(request.getMetaTitle());
         blogPost.setMetaDescription(request.getMetaDescription());
         blogPost.setMetaKeywords(request.getMetaKeywords());
-        blogPost.setViews(0);
+        // Views is initialized to 0 by default in the entity
 
         BlogPost savedPost = blogPostRepository.save(blogPost);
         logger.info("Blog post created successfully with id: {}", savedPost.getId());
@@ -96,57 +112,54 @@ public class BlogService {
     /**
      * Update an existing blog post
      */
-    public BlogPostDTO updateBlogPost(Long id, BlogPostUpdateRequest request) {
+    public BlogPostDTO updateBlogPost(Long id, BlogPostCreateRequest request) {
         logger.info("Updating blog post with id: {}", id);
 
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found with id: " + id));
 
         // Update slug if title changed
-        if (request.getTitle() != null && !request.getTitle().equals(blogPost.getTitle())) {
+        if (!request.getTitle().equals(blogPost.getTitle())) {
             String newSlug = slugGenerator.updateSlugIfNeeded(
                     blogPost.getSlug(),
                     request.getTitle(),
                     slug -> blogPostRepository.existsBySlug(slug) && !slug.equals(blogPost.getSlug())
             );
             blogPost.setSlug(newSlug);
-            blogPost.setTitle(request.getTitle());
         }
 
-        // Update other fields
-        if (request.getContent() != null) {
-            blogPost.setContent(request.getContent());
-        }
-        if (request.getFeaturedImage() != null) {
-            blogPost.setFeaturedImage(request.getFeaturedImage());
-        }
-        if (request.getStatus() != null) {
-            blogPost.setStatus(request.getStatus());
-        }
-        if (request.getPublishDate() != null) {
-            blogPost.setPublishDate(request.getPublishDate());
-        }
-        if (request.getMetaTitle() != null) {
-            blogPost.setMetaTitle(request.getMetaTitle());
-        }
-        if (request.getMetaDescription() != null) {
-            blogPost.setMetaDescription(request.getMetaDescription());
-        }
-        if (request.getMetaKeywords() != null) {
-            blogPost.setMetaKeywords(request.getMetaKeywords());
-        }
-        if (request.getTags() != null) {
-            blogPost.setTags(request.getTags());
-        }
+        // Update all fields directly (no null checks needed since frontend sends complete object)
+        blogPost.setTitle(request.getTitle());
+        blogPost.setContent(request.getContent());
+        blogPost.setContentType(request.getContentType());
+        blogPost.setExcerpt(request.getExcerpt());
+        blogPost.setFeaturedImage(request.getFeaturedImage());
+        blogPost.setStatus(request.getStatus() != null ? request.getStatus() : BlogPostStatus.DRAFT);
+        blogPost.setPublishDate(request.getPublishDate());
+        blogPost.setTags(request.getTags() != null ? request.getTags() : new HashSet<>());
+        blogPost.setMetaTitle(request.getMetaTitle());
+        blogPost.setMetaDescription(request.getMetaDescription());
+        blogPost.setMetaKeywords(request.getMetaKeywords());
 
         // Update categories
-        if (request.getCategoryIds() != null) {
-            Set<BlogCategory> categories = request.getCategoryIds().stream()
+        Set<BlogCategory> categories = new HashSet<>();
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            categories = request.getCategoryIds().stream()
                     .map(categoryId -> blogCategoryRepository.findById(categoryId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId)))
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId)))
                     .collect(Collectors.toSet());
-            blogPost.setCategories(categories);
         }
+        blogPost.setCategories(categories);
+
+        // Update suggested products
+        Set<Product> suggestedProducts = new HashSet<>();
+        if (request.getSuggestedProductIds() != null && !request.getSuggestedProductIds().isEmpty()) {
+            suggestedProducts = request.getSuggestedProductIds().stream()
+                    .map(productId -> productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId)))
+                    .collect(Collectors.toSet());
+        }
+        blogPost.setSuggestedProducts(suggestedProducts);
 
         BlogPost updatedPost = blogPostRepository.save(blogPost);
         logger.info("Blog post updated successfully with id: {}", updatedPost.getId());
@@ -163,7 +176,8 @@ public class BlogService {
                 .orElseThrow(() -> new ResourceNotFoundException("Published blog post not found with slug: " + slug));
 
         // Increment view count
-        blogPost.setViews(blogPost.getViews() + 1);
+        Integer currentViews = blogPost.getViews();
+        blogPost.setViews(currentViews != null ? currentViews + 1 : 1);
         blogPostRepository.save(blogPost);
 
         return convertToDTO(blogPost);
@@ -225,7 +239,7 @@ public class BlogService {
 
         // Delete featured image if exists
         if (blogPost.getFeaturedImage() != null && !blogPost.getFeaturedImage().isEmpty()) {
-            storageService.deleteFile(blogPost.getFeaturedImage());
+            fileUploadService.deleteFile(blogPost.getFeaturedImage());
         }
 
         blogPostRepository.delete(blogPost);
@@ -318,8 +332,8 @@ public class BlogService {
                 .orElseThrow(() -> new ResourceNotFoundException("Blog category not found with id: " + id));
 
         // Check if new name conflicts with existing categories
-        if (!category.getName().equals(request.getName()) && 
-            blogCategoryRepository.existsByName(request.getName())) {
+        if (!category.getName().equals(request.getName())
+                && blogCategoryRepository.existsByName(request.getName())) {
             throw new IllegalArgumentException("Category with name '" + request.getName() + "' already exists");
         }
 
@@ -364,13 +378,30 @@ public class BlogService {
     /**
      * Upload blog image
      */
-    public String uploadBlogImage(MultipartFile file) throws IOException {
+    public String uploadBlogImage(MultipartFile file) {
         logger.info("Uploading blog image: {}", file.getOriginalFilename());
 
-        String imageUrl = storageService.uploadImage(file, "blog/images");
+        String imageUrl = fileUploadService.uploadFile(file, "blog/images");
         logger.info("Blog image uploaded successfully: {}", imageUrl);
 
         return imageUrl;
+    }
+
+    /**
+     * Get available products for blog post suggestions
+     */
+    @Transactional(readOnly = true)
+    public Page<SuggestedProductDTO> getAvailableProductsForSuggestion(String search, Pageable pageable) {
+        logger.info("Fetching available products for suggestions with search: {}", search);
+
+        Page<Product> products;
+        if (search != null && !search.trim().isEmpty()) {
+            products = productRepository.searchProducts(search.trim(), pageable);
+        } else {
+            products = productRepository.findByIsActiveTrue(pageable);
+        }
+
+        return products.map(this::convertProductToSuggestedDTO);
     }
 
     /**
@@ -382,6 +413,8 @@ public class BlogService {
         dto.setTitle(blogPost.getTitle());
         dto.setSlug(blogPost.getSlug());
         dto.setContent(blogPost.getContent());
+        dto.setContentType(blogPost.getContentType());
+        dto.setExcerpt(blogPost.getExcerpt());
         dto.setFeaturedImage(blogPost.getFeaturedImage());
         dto.setStatus(blogPost.getStatus());
         dto.setPublishDate(blogPost.getPublishDate());
@@ -406,6 +439,13 @@ public class BlogService {
         if (blogPost.getCategories() != null) {
             dto.setCategories(blogPost.getCategories().stream()
                     .map(this::convertCategoryToDTO)
+                    .collect(Collectors.toSet()));
+        }
+
+        // Set suggested products
+        if (blogPost.getSuggestedProducts() != null) {
+            dto.setSuggestedProducts(blogPost.getSuggestedProducts().stream()
+                    .map(this::convertProductToSuggestedDTO)
                     .collect(Collectors.toSet()));
         }
 
@@ -438,8 +478,10 @@ public class BlogService {
                     .collect(Collectors.toSet()));
         }
 
-        // Set excerpt (first 200 characters of content without HTML)
-        if (blogPost.getContent() != null) {
+        // Set excerpt - use provided excerpt or generate from content
+        if (blogPost.getExcerpt() != null && !blogPost.getExcerpt().trim().isEmpty()) {
+            dto.setExcerpt(blogPost.getExcerpt());
+        } else if (blogPost.getContent() != null) {
             String plainText = blogPost.getContent().replaceAll("<[^>]*>", "");
             dto.setExcerpt(plainText.length() > 200 ? plainText.substring(0, 200) + "..." : plainText);
         }
@@ -458,6 +500,37 @@ public class BlogService {
         dto.setDescription(category.getDescription());
         dto.setCreatedAt(category.getCreatedAt());
         dto.setUpdatedAt(category.getUpdatedAt());
+        return dto;
+    }
+
+    /**
+     * Convert Product entity to SuggestedProductDTO
+     */
+    private SuggestedProductDTO convertProductToSuggestedDTO(Product product) {
+        SuggestedProductDTO dto = new SuggestedProductDTO();
+        dto.setProductId(product.getProductId());
+        dto.setName(product.getName());
+        dto.setShortDescription(product.getShortDescription());
+        dto.setSlug(product.getSlug());
+
+        // Get price from the minimum variant price (or default variant)
+        dto.setPrice(product.getMinPrice());
+
+        // Check if product is in stock (has any variant with stock)
+        dto.setInStock(product.isInStock());
+
+        // Set image URL from primary image
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            var primaryImage = product.getPrimaryImage();
+            if (primaryImage != null) {
+                dto.setImageUrl(primaryImage.getImageUrl());
+            }
+        }
+
+        // Set rating and review count from product
+        dto.setRating(product.getAvgRating() != null ? product.getAvgRating().doubleValue() : 0.0);
+        dto.setReviewCount(product.getReviewCount() != null ? product.getReviewCount() : 0);
+
         return dto;
     }
 }

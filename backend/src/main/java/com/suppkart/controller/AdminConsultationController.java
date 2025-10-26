@@ -108,42 +108,44 @@ public class AdminConsultationController {
     }
 
     /**
-     * Get available slots for a specific date
+     * Check if a specific date is available for booking
      */
-    @GetMapping("/slots")
-    public ResponseEntity<ApiResponse<List<AvailableSlotDTO>>> getAvailableSlots(
+    @GetMapping("/availability")
+    public ResponseEntity<ApiResponse<Boolean>> checkDateAvailability(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         
-        log.info("Admin fetching available slots for date: {}", date);
+        log.info("Admin checking availability for date: {}", date);
         
         try {
-            List<AvailableSlotDTO> slots = adminConsultationService.getAvailableSlots(date);
-            return ResponseEntity.ok(ApiResponse.success("Available slots retrieved successfully", slots));
+            boolean isAvailable = adminConsultationService.isDayAvailableForBooking(date);
+            return ResponseEntity.ok(ApiResponse.success("Date availability checked successfully", isAvailable));
         } catch (Exception e) {
-            log.error("Error fetching available slots: {}", e.getMessage(), e);
+            log.error("Error checking date availability: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to retrieve available slots"));
+                    .body(ApiResponse.error("Failed to check date availability"));
         }
     }
 
     /**
-     * Update available consultation slots
+     * Get current bookings count for a specific date
      */
-    @PutMapping("/slots")
-    public ResponseEntity<ApiResponse<String>> updateAvailableSlots(
-            @Valid @RequestBody List<SlotUpdateRequest> slots) {
+    @GetMapping("/bookings-count")
+    public ResponseEntity<ApiResponse<Integer>> getCurrentBookingsCount(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         
-        log.info("Admin updating consultation slots configuration");
+        log.info("Admin fetching bookings count for date: {}", date);
         
         try {
-            adminConsultationService.updateAvailableSlots(slots);
-            return ResponseEntity.ok(ApiResponse.success("Consultation slots updated successfully", "Success"));
+            int count = adminConsultationService.getCurrentBookingsCount(date);
+            return ResponseEntity.ok(ApiResponse.success("Bookings count retrieved successfully", count));
         } catch (Exception e) {
-            log.error("Error updating consultation slots: {}", e.getMessage(), e);
+            log.error("Error fetching bookings count: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to update consultation slots"));
+                    .body(ApiResponse.error("Failed to retrieve bookings count"));
         }
     }
+
+
 
     /**
      * Add consultation notes
@@ -199,31 +201,7 @@ public class AdminConsultationController {
         }
     }
 
-    /**
-     * Export consultation calendar
-     */
-    @GetMapping("/calendar/export")
-    public ResponseEntity<byte[]> exportConsultationCalendar(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        
-        log.info("Admin exporting consultation calendar from {} to {}", startDate, endDate);
-        
-        try {
-            byte[] calendarData = adminConsultationService.exportConsultationCalendar(startDate, endDate);
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", "consultation-calendar.ics");
-            
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(calendarData);
-        } catch (Exception e) {
-            log.error("Error exporting consultation calendar: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
+
 
     /**
      * Reschedule consultation
@@ -233,7 +211,7 @@ public class AdminConsultationController {
             @PathVariable Long id,
             @Valid @RequestBody RescheduleRequest request) {
         
-        log.info("Admin rescheduling consultation {} to {} at {}", id, request.getNewDate(), request.getNewTime());
+        log.info("Admin rescheduling consultation {} to {}", id, request.getNewDate());
         
         try {
             ConsultationDetailDTO rescheduledConsultation = adminConsultationService.rescheduleConsultation(id, request);

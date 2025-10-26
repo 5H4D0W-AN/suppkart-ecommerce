@@ -282,7 +282,14 @@ public class ReferralService {
     @Transactional(readOnly = true)
     public Page<ReferralDto> getAllReferralsAdmin(ReferralStatus status, String referrerName, String referralCode, Pageable pageable) {
         try {
-            Page<Referral> referrals = referralRepository.findAllByOrderByCreatedAtDesc(pageable);
+            Page<Referral> referrals;
+            
+            if (status != null || referrerName != null || referralCode != null) {
+                referrals = referralRepository.findReferralsWithFilters(status, referrerName, referralCode, pageable);
+            } else {
+                referrals = referralRepository.findAllByOrderByCreatedAtDesc(pageable);
+            }
+            
             return referrals.map(this::convertToDto);
         } catch (Exception e) {
             logger.error("Error getting all referrals for admin: {}", e.getMessage());
@@ -353,32 +360,7 @@ public class ReferralService {
         }
     }
     
-    /**
-     * Update referral program settings
-     */
-    @Transactional
-    public void updateReferralSettings(Map<String, Object> settings) {
-        try {
-            logger.info("Referral settings updated: {}", settings);
-        } catch (Exception e) {
-            logger.error("Error updating referral settings: {}", e.getMessage());
-            throw new ReferralException("Failed to update referral settings: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Get top referrers
-     */
-    @Transactional(readOnly = true)
-    public Page<ReferralDto> getTopReferrers(Pageable pageable) {
-        try {
-            Page<Referral> topReferrers = referralRepository.findAllByOrderByCreatedAtDesc(pageable);
-            return topReferrers.map(this::convertToDto);
-        } catch (Exception e) {
-            logger.error("Error getting top referrers: {}", e.getMessage());
-            throw new ReferralException("Failed to retrieve top referrers: " + e.getMessage());
-        }
-    }
+
     
     /**
      * Get referral analytics

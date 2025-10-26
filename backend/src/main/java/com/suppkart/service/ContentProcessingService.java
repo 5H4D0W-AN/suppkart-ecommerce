@@ -20,10 +20,12 @@ public class ContentProcessingService {
         switch (contentType) {
             case HTML:
                 return sanitizeHtml(content);
-            case MARKDOWN:
-                return convertMarkdownToHtml(content);
-            case PLAIN_TEXT:
+            case TEXT:
                 return convertPlainTextToHtml(content);
+            case JSON:
+                return sanitizeHtml(content); // Treat JSON as HTML for now
+            case MEDIA:
+                return ""; // Media content doesn't have HTML representation
             default:
                 return sanitizeHtml(content);
         }
@@ -40,10 +42,12 @@ public class ContentProcessingService {
         switch (contentType) {
             case HTML:
                 return stripHtmlTags(content);
-            case MARKDOWN:
-                return stripMarkdownSyntax(content);
-            case PLAIN_TEXT:
+            case TEXT:
                 return content;
+            case JSON:
+                return stripHtmlTags(content); // Treat JSON as HTML for now
+            case MEDIA:
+                return ""; // Media content doesn't have text representation
             default:
                 return stripHtmlTags(content);
         }

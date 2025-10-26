@@ -17,10 +17,13 @@ import java.time.LocalDateTime;
 public class ReviewFilterRequest {
     private String search;
     private Long productId;
+    private Long customerId;
     private Integer rating;
     private String status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private Boolean verified;
     private Boolean isFake;
+    private Boolean isVisible;
+    private Boolean approved;
 }

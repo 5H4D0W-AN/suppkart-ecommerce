@@ -139,14 +139,14 @@ public class ScheduledTasks {
     }
     
     /**
-     * Expire old referral rewards - runs daily at 3 AM
+     * Expire old referral rewards (15+ days old) - runs daily at 3 AM
      */
     @Scheduled(cron = "0 0 3 * * *") // Daily at 3 AM
     @Transactional
     public void expireOldReferralRewards() {
         try {
-            logger.info("Starting expiration of old referral rewards...");
-            referralRewardService.expireOldRewards();
+            logger.info("Starting expiration of referral rewards older than 15 days...");
+            referralRewardService.expireRewardsOlderThan15Days();
             logger.info("Completed expiration of old referral rewards");
         } catch (Exception e) {
             logger.error("Error during referral reward expiration", e);

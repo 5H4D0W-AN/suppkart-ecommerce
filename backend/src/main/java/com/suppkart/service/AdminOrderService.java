@@ -13,8 +13,10 @@ import com.suppkart.model.enums.PaymentMethod;
 import com.suppkart.model.enums.PaymentStatus;
 import com.suppkart.repository.OrderRepository;
 import com.suppkart.repository.OrderItemRepository;
+import com.suppkart.repository.OrderStatusHistoryRepository;
 import com.suppkart.repository.UserRepository;
 import com.suppkart.service.PDFGenerationService;
+import com.suppkart.model.entity.OrderStatusHistory;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ public class AdminOrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final UserRepository userRepository;
     private final PDFGenerationService pdfGenerationService;
 
@@ -52,10 +55,10 @@ public class AdminOrderService {
      */
     public Page<OrderListItemDTO> getAllOrders(OrderFilterRequest filter, Pageable pageable) {
         log.debug("Getting all orders with filter: {}", filter);
-        
+
         Specification<Order> spec = createOrderSpecification(filter);
         Page<Order> orders = orderRepository.findAll(spec, pageable);
-        
+
         return orders.map(this::convertToOrderListItemDTO);
     }
 
@@ -64,10 +67,10 @@ public class AdminOrderService {
      */
     public OrderDetailDTO getOrderById(Long id) {
         log.debug("Getting order by ID: {}", id);
-        
+
         Order order = orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
         return convertToOrderDetailDTO(order);
     }
 
@@ -77,21 +80,32 @@ public class AdminOrderService {
     @Transactional
     public OrderDetailDTO updateOrderStatus(Long id, String status, String comment) {
         log.debug("Updating order {} status to: {}", id, status);
-        
+
         Order order = orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
         try {
-            OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
-            order.setOrderStatus(orderStatus);
-            order.setUpdatedAt(LocalDateTime.now());
-            
-            // Add status history entry (if you have status history tracking)
-            // This would require a separate OrderStatusHistory entity
-            
+            OrderStatus newOrderStatus = OrderStatus.valueOf(status.toUpperCase());
+            OrderStatus previousStatus = order.getOrderStatus();
+
+            // Only create history entry if status is actually changing
+            if (previousStatus != newOrderStatus) {
+                order.setOrderStatus(newOrderStatus);
+                order.setUpdatedAt(LocalDateTime.now());
+
+                // Create status history entry
+                OrderStatusHistory statusHistory = new OrderStatusHistory(
+                        order,
+                        newOrderStatus,
+                        comment,
+                        "Admin" 
+                );
+                orderStatusHistoryRepository.save(statusHistory);
+
+                log.info("Order {} status updated from {} to: {}", id, previousStatus, status);
+            }
+
             Order savedOrder = orderRepository.save(order);
-            log.info("Order {} status updated to: {}", id, status);
-            
             return convertToOrderDetailDTO(savedOrder);
         } catch (IllegalArgumentException e) {
             throw new OrderException("Invalid order status: " + status);
@@ -104,17 +118,30 @@ public class AdminOrderService {
     @Transactional
     public ShipmentResponseDTO createShipment(Long orderId, ShipmentRequest request) {
         log.debug("Creating shipment for order: {}", orderId);
-        
+
         Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+
+        OrderStatus previousStatus = order.getOrderStatus();
+
         // Update order with shipment information
         order.setTrackingNumber(request.getTrackingNumber());
         order.setOrderStatus(OrderStatus.SHIPPED);
         order.setUpdatedAt(LocalDateTime.now());
-        
+
+        // Create status history entry for shipment
+        if (previousStatus != OrderStatus.SHIPPED) {
+            OrderStatusHistory statusHistory = new OrderStatusHistory(
+                    order,
+                    OrderStatus.SHIPPED,
+                    "Order shipped with tracking number: " + request.getTrackingNumber(),
+                    "Admin"
+            );
+            orderStatusHistoryRepository.save(statusHistory);
+        }
+
         orderRepository.save(order);
-        
+
         // Create shipment response
         ShipmentResponseDTO response = new ShipmentResponseDTO();
         response.setId(orderId); // Using order ID as shipment ID for simplicity
@@ -124,7 +151,7 @@ public class AdminOrderService {
         response.setPackageWeight(request.getPackageWeight());
         response.setEstimatedDeliveryDate(request.getEstimatedDeliveryDate());
         response.setShipmentDate(LocalDateTime.now());
-        
+
         log.info("Shipment created for order: {}", orderId);
         return response;
     }
@@ -135,25 +162,42 @@ public class AdminOrderService {
     @Transactional
     public OrderDetailDTO processRefund(Long id, RefundRequest request) {
         log.debug("Processing refund for order: {}", id);
-        
+
         Order order = orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
+        OrderStatus previousStatus = order.getOrderStatus();
+        OrderStatus newStatus;
+        String comment;
+
         // Update order status based on refund amount
         if (request.getAmount().compareTo(order.getTotalAmount()) >= 0) {
-            order.setOrderStatus(OrderStatus.REFUNDED);
+            newStatus = OrderStatus.REFUNDED;
+            comment = "Full refund processed: $" + request.getAmount();
         } else {
-            order.setOrderStatus(OrderStatus.PARTIALLY_REFUNDED);
+            newStatus = OrderStatus.REFUNDED; // Using REFUNDED for partial refunds too since PARTIALLY_REFUNDED doesn't exist
+            comment = "Partial refund processed: $" + request.getAmount() + " of $" + order.getTotalAmount();
         }
-        
+
+        order.setOrderStatus(newStatus);
         order.setUpdatedAt(LocalDateTime.now());
-        
-        // In a real implementation, you would integrate with payment gateway
+
+        // Create status history entry for refund
+        if (previousStatus != newStatus) {
+            OrderStatusHistory statusHistory = new OrderStatusHistory(
+                    order,
+                    newStatus,
+                    comment,
+                    "Admin"
+            );
+            orderStatusHistoryRepository.save(statusHistory);
+        }
+
+        // TODO: you would integrate with payment gateway
         // to process the actual refund
-        
         Order savedOrder = orderRepository.save(order);
         log.info("Refund processed for order: {}", id);
-        
+
         return convertToOrderDetailDTO(savedOrder);
     }
 
@@ -162,36 +206,49 @@ public class AdminOrderService {
      */
     public byte[] generateInvoice(Long id) {
         log.debug("Generating invoice for order: {}", id);
-        
+
         Order order = orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
         OrderDetailDTO orderDetail = convertToOrderDetailDTO(order);
         return pdfGenerationService.generateInvoice(orderDetail);
     }
 
     /**
-     * Get order status history
+     * Get order status history (newest first - for admin view)
      */
     public List<OrderStatusHistoryDTO> getOrderStatusHistory(Long id) {
         log.debug("Getting status history for order: {}", id);
-        
-        Order order = orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
-        
-        // In a real implementation, you would have a separate OrderStatusHistory entity
-        // For now, return a simple history based on current status
-        List<OrderStatusHistoryDTO> history = new ArrayList<>();
-        
-        OrderStatusHistoryDTO currentStatus = new OrderStatusHistoryDTO();
-        currentStatus.setStatus(order.getOrderStatus().name());
-        currentStatus.setTimestamp(order.getUpdatedAt());
-        currentStatus.setComment("Current status");
-        currentStatus.setUpdatedBy("System");
-        
-        history.add(currentStatus);
-        
-        return history;
+
+        // Verify order exists
+        orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
+        // Get status history ordered by timestamp (newest first for admin view)
+        List<OrderStatusHistory> historyEntries = orderStatusHistoryRepository.findByOrderIdOrderByCreatedAtDesc(id);
+
+        return historyEntries.stream()
+                .map(this::convertToOrderStatusHistoryDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get order status history in chronological order (oldest first - for
+     * customer tracking)
+     */
+    public List<OrderStatusHistoryDTO> getOrderStatusHistoryChronological(Long id) {
+        log.debug("Getting chronological status history for order: {}", id);
+
+        // Verify order exists
+        orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
+        // Get status history ordered by timestamp (oldest first for customer tracking)
+        List<OrderStatusHistory> historyEntries = orderStatusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(id);
+
+        return historyEntries.stream()
+                .map(this::convertToOrderStatusHistoryDTO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -199,30 +256,30 @@ public class AdminOrderService {
      */
     public List<OrderAnalyticsDTO> getOrderAnalytics(LocalDate startDate, LocalDate endDate, String groupBy) {
         log.debug("Getting order analytics from {} to {} grouped by {}", startDate, endDate, groupBy);
-        
+
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
-        
+
         List<Order> orders = orderRepository.findByCreatedAtBetween(startDateTime, endDateTime);
-        
+
         // Group orders by the specified criteria
         List<OrderAnalyticsDTO> analytics = new ArrayList<>();
-        
+
         if ("day".equalsIgnoreCase(groupBy)) {
             // Group by day
             orders.stream()
-                .collect(Collectors.groupingBy(order -> order.getCreatedAt().toLocalDate()))
-                .forEach((date, dayOrders) -> {
-                    OrderAnalyticsDTO dto = new OrderAnalyticsDTO();
-                    dto.setDate(date);
-                    dto.setOrderCount((long) dayOrders.size());
-                    dto.setTotalRevenue(dayOrders.stream()
-                        .map(Order::getTotalAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add));
-                    analytics.add(dto);
-                });
+                    .collect(Collectors.groupingBy(order -> order.getCreatedAt().toLocalDate()))
+                    .forEach((date, dayOrders) -> {
+                        OrderAnalyticsDTO dto = new OrderAnalyticsDTO();
+                        dto.setDate(date);
+                        dto.setOrderCount((long) dayOrders.size());
+                        dto.setTotalRevenue(dayOrders.stream()
+                                .map(Order::getTotalAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add));
+                        analytics.add(dto);
+                    });
         }
-        
+
         return analytics;
     }
 
@@ -232,16 +289,16 @@ public class AdminOrderService {
     private Specification<Order> createOrderSpecification(OrderFilterRequest filter) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            
+
             if (filter.getSearch() != null && !filter.getSearch().trim().isEmpty()) {
                 String searchTerm = "%" + filter.getSearch().toLowerCase() + "%";
                 Predicate orderNumberPredicate = criteriaBuilder.like(
-                    criteriaBuilder.lower(root.get("orderNumber")), searchTerm);
+                        criteriaBuilder.lower(root.get("orderNumber")), searchTerm);
                 Predicate customerNamePredicate = criteriaBuilder.like(
-                    criteriaBuilder.lower(root.get("user").get("firstName")), searchTerm);
+                        criteriaBuilder.lower(root.get("user").get("firstName")), searchTerm);
                 predicates.add(criteriaBuilder.or(orderNumberPredicate, customerNamePredicate));
             }
-            
+
             if (filter.getStatus() != null && !filter.getStatus().trim().isEmpty()) {
                 try {
                     OrderStatus status = OrderStatus.valueOf(filter.getStatus().toUpperCase());
@@ -250,7 +307,7 @@ public class AdminOrderService {
                     log.warn("Invalid order status filter: {}", filter.getStatus());
                 }
             }
-            
+
             if (filter.getPaymentStatus() != null && !filter.getPaymentStatus().trim().isEmpty()) {
                 try {
                     PaymentStatus paymentStatus = PaymentStatus.valueOf(filter.getPaymentStatus().toUpperCase());
@@ -259,25 +316,25 @@ public class AdminOrderService {
                     log.warn("Invalid payment status filter: {}", filter.getPaymentStatus());
                 }
             }
-            
+
             if (filter.getStartDate() != null) {
                 LocalDateTime startDateTime = filter.getStartDate().atStartOfDay();
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), startDateTime));
             }
-            
+
             if (filter.getEndDate() != null) {
                 LocalDateTime endDateTime = filter.getEndDate().atTime(23, 59, 59);
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), endDateTime));
             }
-            
+
             if (filter.getMinAmount() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("totalAmount"), filter.getMinAmount()));
             }
-            
+
             if (filter.getMaxAmount() != null) {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("totalAmount"), filter.getMaxAmount()));
             }
-            
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
@@ -313,8 +370,8 @@ public class AdminOrderService {
         dto.setShippingAddress(convertOrderToShippingAddressDTO(order));
         dto.setBillingAddress(null); // Order entity doesn't have billing address fields
         dto.setItems(order.getOrderItems().stream()
-            .map(this::convertToOrderItemDTO)
-            .collect(Collectors.toList()));
+                .map(this::convertToOrderItemDTO)
+                .collect(Collectors.toList()));
         dto.setSubtotal(order.getSubtotal());
         dto.setShippingCost(order.getShippingCost());
         dto.setDiscount(order.getDiscountAmount());
@@ -324,7 +381,7 @@ public class AdminOrderService {
         dto.setPaymentStatus(order.getPaymentStatus()); // Set enum directly, can be null
         dto.setTransactionId(order.getPaymentTransactionId());
         dto.setNotes(null); // Order entity doesn't have notes field
-        
+
         // Set shipment info if available
         if (order.getTrackingNumber() != null) {
             ShipmentDTO shipment = new ShipmentDTO();
@@ -332,7 +389,7 @@ public class AdminOrderService {
             shipment.setTrackingUrl("https://track.example.com/" + order.getTrackingNumber());
             dto.setShipment(shipment);
         }
-        
+
         return dto;
     }
 
@@ -355,7 +412,7 @@ public class AdminOrderService {
         if (address == null) {
             return null;
         }
-        
+
         AddressDTO dto = new AddressDTO();
         dto.setAddressId(address.getAddressId());
         dto.setFirstName(address.getFirstName());
@@ -387,10 +444,10 @@ public class AdminOrderService {
         dto.setQuantity(orderItem.getQuantity());
         dto.setPrice(orderItem.getUnitPrice()); // Use unitPrice field
         dto.setTotal(orderItem.getTotalPrice()); // Use totalPrice field
-        
+
         // Set image URL from stored product image URL
         dto.setImageUrl(orderItem.getProductImageUrl());
-        
+
         return dto;
     }
 
@@ -413,6 +470,18 @@ public class AdminOrderService {
         dto.setLabel("Shipping Address");
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
+        return dto;
+    }
+
+    /**
+     * Convert OrderStatusHistory entity to OrderStatusHistoryDTO
+     */
+    private OrderStatusHistoryDTO convertToOrderStatusHistoryDTO(OrderStatusHistory history) {
+        OrderStatusHistoryDTO dto = new OrderStatusHistoryDTO();
+        dto.setStatus(history.getStatus().name());
+        dto.setTimestamp(history.getCreatedAt());
+        dto.setComment(history.getComment());
+        dto.setUpdatedBy(history.getUpdatedBy());
         return dto;
     }
 }

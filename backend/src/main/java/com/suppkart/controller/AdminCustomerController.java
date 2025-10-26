@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.suppkart.dto.admin.customer.CustomerActivityDTO;
 import com.suppkart.dto.admin.customer.CustomerDTO;
 import com.suppkart.dto.admin.customer.CustomerDetailDTO;
 import com.suppkart.dto.admin.customer.CustomerFilterRequest;
@@ -136,21 +135,6 @@ public class AdminCustomerController {
     }
 
     /**
-     * Update customer status
-     */
-    @PatchMapping("/{customerId}/status")
-    public ResponseEntity<ApiResponse<CustomerDetailDTO>> updateCustomerStatus(
-            @PathVariable Long customerId,
-            @Valid @RequestBody CustomerStatusRequest request) {
-        
-        log.info("Updating status for customer ID: {} to status: {}", customerId, request.getStatus());
-        
-        CustomerDetailDTO updatedCustomer = adminCustomerService.updateCustomerStatus(customerId, request);
-        
-        return ResponseEntity.ok(ApiResponse.success("Customer status updated successfully", updatedCustomer));
-    }
-
-    /**
      * Delete customer (GDPR compliance)
      */
     @DeleteMapping("/{customerId}")
@@ -172,18 +156,6 @@ public class AdminCustomerController {
         adminCustomerService.exportCustomerData(customerId);
         
         return ResponseEntity.ok(ApiResponse.success("Customer data export initiated. You will receive an email with the data.", "Export initiated"));
-    }
-
-    /**
-     * Get customer activity log
-     */
-    @GetMapping("/{customerId}/activity")
-    public ResponseEntity<ApiResponse<List<CustomerActivityDTO>>> getCustomerActivity(@PathVariable Long customerId) {
-        log.info("Getting activity log for customer ID: {}", customerId);
-        
-        List<CustomerActivityDTO> activities = adminCustomerService.getCustomerActivity(customerId);
-        
-        return ResponseEntity.ok(ApiResponse.success("Customer activity retrieved successfully", activities));
     }
 
     /**

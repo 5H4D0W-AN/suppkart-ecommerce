@@ -205,7 +205,7 @@ public class AdminOrderController {
     }
 
     /**
-     * Get order status history
+     * Get order status history (newest first - for admin view)
      */
     @GetMapping("/{id}/history")
     public ResponseEntity<ApiResponse<List<OrderStatusHistoryDTO>>> getOrderStatusHistory(@PathVariable Long id) {
@@ -217,6 +217,24 @@ public class AdminOrderController {
 
         } catch (Exception e) {
             logger.error("Error fetching order {} history: ", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to fetch order history: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get order status history in chronological order (oldest first - for tracking timeline)
+     */
+    @GetMapping("/{id}/history/chronological")
+    public ResponseEntity<ApiResponse<List<OrderStatusHistoryDTO>>> getOrderStatusHistoryChronological(@PathVariable Long id) {
+        try {
+            logger.info("Fetching chronological status history for order: {}", id);
+
+            List<OrderStatusHistoryDTO> history = adminOrderService.getOrderStatusHistoryChronological(id);
+            return ResponseEntity.ok(ApiResponse.success("Order status history retrieved successfully", history));
+
+        } catch (Exception e) {
+            logger.error("Error fetching chronological order {} history: ", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to fetch order history: " + e.getMessage()));
         }

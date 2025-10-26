@@ -131,4 +131,17 @@ public interface ReferralRepository extends JpaRepository<Referral, Long> {
      * Find referrals by referred user where first order is null
      */
     List<Referral> findByReferredUserAndFirstOrderIsNull(User referredUser);
+    
+    /**
+     * Find referrals with filters for admin
+     */
+    @Query("SELECT r FROM Referral r WHERE " +
+           "(:status IS NULL OR r.status = :status) AND " +
+           "(:referrerName IS NULL OR LOWER(r.referrerUser.firstName) LIKE LOWER(CONCAT('%', :referrerName, '%')) OR LOWER(r.referrerUser.lastName) LIKE LOWER(CONCAT('%', :referrerName, '%'))) AND " +
+           "(:referralCode IS NULL OR LOWER(r.referralCode) LIKE LOWER(CONCAT('%', :referralCode, '%'))) " +
+           "ORDER BY r.createdAt DESC")
+    Page<Referral> findReferralsWithFilters(@Param("status") ReferralStatus status, 
+                                           @Param("referrerName") String referrerName, 
+                                           @Param("referralCode") String referralCode, 
+                                           Pageable pageable);
 }

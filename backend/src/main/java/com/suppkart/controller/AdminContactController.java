@@ -130,25 +130,4 @@ public class AdminContactController {
                     .body(ApiResponse.error("Failed to retrieve contact statistics"));
         }
     }
-
-    /**
-     * Bulk update contact message status
-     */
-    @PatchMapping("/bulk-status")
-    public ResponseEntity<ApiResponse<String>> bulkUpdateStatus(
-            @RequestParam ContactStatus fromStatus,
-            @RequestParam ContactStatus toStatus) {
-        
-        log.info("Admin bulk updating contact messages from {} to {}", fromStatus, toStatus);
-        
-        try {
-            // This would need to be implemented in the service
-            // contactService.bulkUpdateStatus(fromStatus, toStatus);
-            return ResponseEntity.ok(ApiResponse.success("Bulk status update completed", "Success"));
-        } catch (Exception e) {
-            log.error("Error in bulk status update: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to perform bulk status update"));
-        }
-    }
 }

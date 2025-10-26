@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -132,6 +133,19 @@ public class GlobalExceptionHandler {
         
         ApiResponse<Object> response = new ApiResponse<>(false, "Validation failed");
         response.setData(Map.of("errors", errors));
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle method argument type mismatch (e.g., invalid enum values)
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        logger.warn("Invalid parameter type: {}", ex.getMessage());
+        String message = String.format("Invalid value '%s' for parameter '%s'", ex.getValue(), ex.getName());
+        
+        ApiResponse<Object> response = new ApiResponse<>(false, message);
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }

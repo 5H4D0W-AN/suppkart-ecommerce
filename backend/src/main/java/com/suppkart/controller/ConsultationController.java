@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.time.LocalDate;
-import java.time.LocalTime;
+
 import java.util.List;
 
 /**
@@ -53,21 +53,21 @@ public class ConsultationController {
     }
 
     /**
-     * Get available time slots for a specific date
+     * Check if a specific date is available for booking
      */
-    @GetMapping("/available-times")
-    public ResponseEntity<ApiResponse<List<LocalTime>>> getAvailableTimeSlots(
+    @GetMapping("/check-availability")
+    public ResponseEntity<ApiResponse<Boolean>> checkDateAvailability(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         
-        log.info("Getting available time slots for date: {}", date);
+        log.info("Checking availability for date: {}", date);
         
         try {
-            List<LocalTime> availableSlots = consultationService.getAvailableTimeSlots(date);
-            return ResponseEntity.ok(ApiResponse.success("Available time slots retrieved successfully", availableSlots));
+            boolean isAvailable = consultationService.isDateAvailable(date);
+            return ResponseEntity.ok(ApiResponse.success("Date availability checked successfully", isAvailable));
         } catch (Exception e) {
-            log.error("Error getting available time slots: {}", e.getMessage(), e);
+            log.error("Error checking date availability: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to retrieve available time slots"));
+                    .body(ApiResponse.error("Failed to check date availability"));
         }
     }
 

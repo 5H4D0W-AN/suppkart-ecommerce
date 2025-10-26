@@ -41,22 +41,16 @@ public class InventoryService {
     private final EmailNotificationService emailNotificationService;
 
     /**
-     * Get inventory for a specific product/variant
+     * Get inventory for a specific variant
      */
     @Transactional(readOnly = true)
     public InventoryDTO getInventory(Long productId, Long variantId) {
         log.debug("Getting inventory for productId: {}, variantId: {}", productId, variantId);
 
-        Optional<Inventory> inventoryOpt;
-        if (variantId != null) {
-            inventoryOpt = inventoryRepository.findByProductIdAndVariantId(productId, variantId);
-        } else {
-            inventoryOpt = inventoryRepository.findByProductIdAndVariantIdIsNull(productId);
-        }
+        Optional<Inventory> inventoryOpt = inventoryRepository.findByProductIdAndVariantId(productId, variantId);
 
         if (inventoryOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Inventory not found for product: " + productId
-                    + (variantId != null ? ", variant: " + variantId : ""));
+            throw new ResourceNotFoundException("Inventory not found for product: " + productId + ", variant: " + variantId);
         }
 
         return mapToInventoryDTO(inventoryOpt.get());
@@ -91,7 +85,7 @@ public class InventoryService {
     }
 
     /**
-     * Update inventory quantity
+     * Update inventory quantity for a variant
      */
     public InventoryDTO updateInventory(Long productId, Long variantId, InventoryUpdateRequest request) {
         log.info("Updating inventory for productId: {}, variantId: {}, quantity: {}",
@@ -126,7 +120,7 @@ public class InventoryService {
     }
 
     /**
-     * Record stock adjustment with reason
+     * Record stock adjustment with reason for a variant
      */
     public void adjustStock(StockAdjustmentRequest request) {
         log.info("Adjusting stock for productId: {}, variantId: {}, changeType: {}",
@@ -147,18 +141,13 @@ public class InventoryService {
     }
 
     /**
-     * Get inventory history for a product/variant
+     * Get inventory history for a variant
      */
     @Transactional(readOnly = true)
     public List<InventoryHistoryDTO> getInventoryHistory(Long productId, Long variantId) {
         log.debug("Getting inventory history for productId: {}, variantId: {}", productId, variantId);
 
-        List<InventoryHistory> history;
-        if (variantId != null) {
-            history = inventoryHistoryRepository.findByProductIdAndVariantIdOrderByUpdatedAtDesc(productId, variantId);
-        } else {
-            history = inventoryHistoryRepository.findByProductIdOrderByUpdatedAtDesc(productId);
-        }
+        List<InventoryHistory> history = inventoryHistoryRepository.findByProductIdAndVariantIdOrderByUpdatedAtDesc(productId, variantId);
 
         return history.stream()
                 .map(this::mapToInventoryHistoryDTO)
@@ -207,7 +196,7 @@ public class InventoryService {
     }
 
     /**
-     * Configure stock threshold for a product/variant
+     * Configure stock threshold for a variant
      */
     public void configureStockThreshold(Long productId, Long variantId, int threshold) {
         log.info("Configuring stock threshold for productId: {}, variantId: {}, threshold: {}",
@@ -219,21 +208,6 @@ public class InventoryService {
 
         // Check if current stock is below new threshold
         checkAndCreateAlerts(inventory);
-    }
-
-    /**
-     * Generate stock report (placeholder - actual implementation would generate
-     * PDF/Excel)
-     */
-    @Transactional(readOnly = true)
-    public void generateStockReport(ReportRequest request) {
-        log.info("Generating stock report: {}", request.getReportType());
-
-        // This would typically generate actual reports
-        // For now, just log the request
-        log.info("Report request: format={}, type={}, dateRange={}-{}",
-                request.getFormat(), request.getReportType(),
-                request.getStartDate(), request.getEndDate());
     }
 
     /**
@@ -251,7 +225,7 @@ public class InventoryService {
                 // Check if alert already exists
                 boolean alertExists = stockAlertRepository.existsByProductIdAndVariantIdAndIsResolvedFalse(
                         inventory.getProduct().getProductId(),
-                        inventory.getVariant() != null ? inventory.getVariant().getVariantId() : null);
+                        inventory.getVariant().getVariantId());
 
                 if (!alertExists) {
                     createStockAlert(inventory);
@@ -265,7 +239,7 @@ public class InventoryService {
                 // Check if alert already exists
                 boolean alertExists = stockAlertRepository.existsByProductIdAndVariantIdAndIsResolvedFalse(
                         inventory.getProduct().getProductId(),
-                        inventory.getVariant() != null ? inventory.getVariant().getVariantId() : null);
+                        inventory.getVariant().getVariantId());
 
                 if (!alertExists) {
                     createOutOfStockAlert(inventory);
@@ -282,16 +256,10 @@ public class InventoryService {
 
     // Private helper methods
     private Inventory getInventoryEntity(Long productId, Long variantId) {
-        Optional<Inventory> inventoryOpt;
-        if (variantId != null) {
-            inventoryOpt = inventoryRepository.findByProductIdAndVariantId(productId, variantId);
-        } else {
-            inventoryOpt = inventoryRepository.findByProductIdAndVariantIdIsNull(productId);
-        }
+        Optional<Inventory> inventoryOpt = inventoryRepository.findByProductIdAndVariantId(productId, variantId);
 
         return inventoryOpt.orElseThrow(()
-                -> new ResourceNotFoundException("Inventory not found for product: " + productId
-                        + (variantId != null ? ", variant: " + variantId : "")));
+                -> new ResourceNotFoundException("Inventory not found for product: " + productId + ", variant: " + variantId));
     }
 
     private void recordInventoryHistory(Inventory inventory, Integer previousQuantity,
@@ -340,7 +308,7 @@ public class InventoryService {
         // Check if alert already exists
         boolean exists = stockAlertRepository.existsByProductIdAndVariantIdAndIsResolvedFalse(
                 inventory.getProduct().getProductId(),
-                inventory.getVariant() != null ? inventory.getVariant().getVariantId() : null);
+                inventory.getVariant().getVariantId());
 
         if (!exists) {
             StockAlert alert = new StockAlert();
@@ -364,7 +332,7 @@ public class InventoryService {
         // Check if alert already exists
         boolean exists = stockAlertRepository.existsByProductIdAndVariantIdAndIsResolvedFalse(
                 inventory.getProduct().getProductId(),
-                inventory.getVariant() != null ? inventory.getVariant().getVariantId() : null);
+                inventory.getVariant().getVariantId());
 
         if (!exists) {
             StockAlert alert = new StockAlert();
@@ -441,20 +409,13 @@ public class InventoryService {
         ProductImage primaryImage = product.getPrimaryImage();
         dto.setProductImage(primaryImage != null ? primaryImage.getImageUrl() : null);
 
-        if (variant != null) {
-            dto.setVariantId(variant.getVariantId());
-            dto.setVariantName(variant.getName());
-            dto.setVariantSku(variant.getSku());
-            dto.setSku(variant.getSku());
-            dto.setPrice(variant.getPrice() != null ? variant.getPrice().doubleValue() : null);
-            dto.setSalePrice(variant.getSalePrice() != null ? variant.getSalePrice().doubleValue() : null);
-        } else {
-            dto.setSku(product.getSku());
-            // For products without variants, we need to get price from somewhere
-            // This might need adjustment based on your business logic
-            dto.setPrice(product.getMinPrice() != null ? product.getMinPrice().doubleValue() : null);
-            dto.setSalePrice(null);
-        }
+        // Since every product now has at least one variant, variant should never be null
+        dto.setVariantId(variant.getVariantId());
+        dto.setVariantName(variant.getName());
+        dto.setVariantSku(variant.getSku());
+        dto.setSku(variant.getSku());
+        dto.setPrice(variant.getPrice() != null ? variant.getPrice().doubleValue() : null);
+        dto.setSalePrice(variant.getSalePrice() != null ? variant.getSalePrice().doubleValue() : null);
 
         dto.setQuantity(inventory.getQuantity());
         dto.setLowStockThreshold(inventory.getLowStockThreshold());
@@ -467,8 +428,8 @@ public class InventoryService {
 
         // Additional metadata
         if (!product.getProductCategories().isEmpty()) {
-            // Get first category name - this might need adjustment based on your Category entity structure
-            dto.setCategoryName("Category"); // Placeholder - needs actual category name extraction
+            // Get first category name 
+            dto.setCategoryName(product.getProductCategories().get(0).getCategory().getName()); 
         }
         dto.setBrandName(product.getBrand().name());
         dto.setStatus(product.getIsActive() ? "ACTIVE" : "INACTIVE");
@@ -491,11 +452,10 @@ public class InventoryService {
         ProductImage primaryImage = product.getPrimaryImage();
         dto.setProductImage(primaryImage != null ? primaryImage.getImageUrl() : null);
 
-        if (variant != null) {
-            dto.setVariantId(variant.getVariantId());
-            dto.setVariantName(variant.getName());
-            dto.setVariantSku(variant.getSku());
-        }
+        // Since every product now has at least one variant, variant should never be null
+        dto.setVariantId(variant.getVariantId());
+        dto.setVariantName(variant.getName());
+        dto.setVariantSku(variant.getSku());
 
         dto.setPreviousQuantity(history.getPreviousQuantity());
         dto.setNewQuantity(history.getNewQuantity());
@@ -527,11 +487,10 @@ public class InventoryService {
         ProductImage primaryImage = product.getPrimaryImage();
         dto.setProductImage(primaryImage != null ? primaryImage.getImageUrl() : null);
 
-        if (variant != null) {
-            dto.setVariantId(variant.getVariantId());
-            dto.setVariantName(variant.getName());
-            dto.setVariantSku(variant.getSku());
-        }
+        // Since every product now has at least one variant, variant should never be null
+        dto.setVariantId(variant.getVariantId());
+        dto.setVariantName(variant.getName());
+        dto.setVariantSku(variant.getSku());
 
         dto.setAlertType(alert.getAlertType().toString());
         dto.setThreshold(alert.getThreshold());
@@ -543,7 +502,7 @@ public class InventoryService {
 
         // Additional metadata
         if (!product.getProductCategories().isEmpty()) {
-            dto.setCategoryName("Category"); // Placeholder - needs actual category name extraction
+            dto.setCategoryName(product.getProductCategories().get(0).getCategory().getName()); 
         }
         dto.setBrandName(product.getBrand().name());
         dto.setStatus(product.getIsActive() ? "ACTIVE" : "INACTIVE");

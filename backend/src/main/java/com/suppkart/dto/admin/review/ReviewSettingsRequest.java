@@ -22,11 +22,5 @@ public class ReviewSettingsRequest {
     @Min(value = 0, message = "Minimum review length must be non-negative")
     private Integer minimumReviewLength;
     
-    @NotNull(message = "Allow images setting is required")
-    private Boolean allowImages;
-    
-    @NotNull(message = "Allow replies setting is required")
-    private Boolean allowReplies;
-    
     private List<String> moderationEmails;
 }

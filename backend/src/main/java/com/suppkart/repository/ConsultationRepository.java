@@ -43,16 +43,7 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
      */
     List<Consultation> findByConsultationDateAndStatusNot(LocalDate date, ConsultationStatus status);
 
-    /**
-     * Count consultations for a specific date and time slot
-     */
-    @Query("SELECT COUNT(c) FROM Consultation c WHERE c.consultationDate = :date " +
-           "AND c.consultationTime >= :startTime AND c.consultationTime < :endTime " +
-           "AND c.status != 'CANCELLED'")
-    Long countByConsultationDateAndConsultationTimeBetween(
-            @Param("date") LocalDate date, 
-            @Param("startTime") LocalTime startTime, 
-            @Param("endTime") LocalTime endTime);
+
 
     /**
      * Find consultations by guest email
@@ -86,4 +77,11 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
      * Find consultations by user ID ordered by date and time descending
      */
     List<Consultation> findByUserUserIdOrderByConsultationDateDescConsultationTimeDesc(Long userId);
+
+    /**
+     * Count active consultations for a specific date (REQUESTED, CONFIRMED, PENDING)
+     */
+    @Query("SELECT COUNT(c) FROM Consultation c WHERE c.consultationDate = :date " +
+           "AND c.status IN ('REQUESTED', 'CONFIRMED', 'PENDING')")
+    Long countActiveConsultationsByDate(@Param("date") LocalDate date);
 }

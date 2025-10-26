@@ -98,57 +98,6 @@ public class AdminCustomerService {
     }
 
     /**
-     * Update customer status
-     */
-    @Transactional
-    public CustomerDetailDTO updateCustomerStatus(Long customerId, CustomerStatusRequest request) {
-        log.debug("Updating customer status for ID: {} to status: {}", customerId, request.getStatus());
-        
-        User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with ID: " + customerId));
-        
-        UserStatus oldStatus = customer.getStatus();
-        UserStatus newStatus = UserStatus.valueOf(request.getStatus().toUpperCase());
-        
-        customer.setStatus(newStatus);
-        customer.setUpdatedAt(LocalDateTime.now());
-        
-        // Add admin notes if provided
-        if (request.getAdminNotes() != null && !request.getAdminNotes().trim().isEmpty()) {
-            // In a real implementation, you might have a separate notes entity
-            log.info("Admin notes added for customer {}: {}", customerId, request.getAdminNotes());
-        }
-        
-        // Handle suspension logic
-        if (request.isSuspensionStatus()) {
-            handleCustomerSuspension(customer, request);
-        }
-        
-        // Handle order blocking
-        if (request.shouldBlockFutureOrders()) {
-            // In a real implementation, you might set a flag to prevent future orders
-            log.info("Future orders blocked for customer: {}", customerId);
-        }
-        
-        // Handle pending order refunds
-        if (request.shouldRefundPendingOrders()) {
-            refundPendingOrders(customer);
-        }
-        
-        User savedCustomer = userRepository.save(customer);
-        
-        // Send notification if requested
-        if (request.shouldNotifyCustomer()) {
-            sendStatusChangeNotification(savedCustomer, oldStatus, newStatus, request.getEffectiveReason());
-        }
-        
-        log.info("Customer status updated successfully for ID: {} from {} to {}", 
-                customerId, oldStatus, newStatus);
-        
-        return mapToCustomerDetailDTO(savedCustomer);
-    }
-
-    /**
      * Delete customer (GDPR compliance)
      */
     @Transactional
@@ -183,8 +132,7 @@ public class AdminCustomerService {
         User customer = userRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with ID: " + customerId));
         
-        // In a real implementation, this would generate a comprehensive data export
-        // including all customer data, orders, addresses, reviews, etc.
+        // TODO: including all customer data, orders, addresses, reviews, etc.
         StringBuilder exportData = new StringBuilder();
         exportData.append("Customer Data Export\n");
         exportData.append("===================\n\n");
@@ -203,56 +151,13 @@ public class AdminCustomerService {
                     .append(" - ₹").append(order.getTotalAmount())
                     .append(" - ").append(order.getCreatedAt()).append("\n");
         }
+
+
         
         // Send export via email
         emailNotificationService.sendCustomerDataExport(customer, exportData.toString());
         
         log.info("Customer data export completed for ID: {}", customerId);
-    }
-
-    /**
-     * Get customer activity log
-     */
-    public List<CustomerActivityDTO> getCustomerActivity(Long customerId) {
-        log.debug("Getting customer activity for ID: {}", customerId);
-        
-        User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with ID: " + customerId));
-        
-        // In a real implementation, this would fetch from an activity log table
-        List<CustomerActivityDTO> activities = new ArrayList<>();
-        
-        // Add registration activity
-        activities.add(CustomerActivityDTO.builder()
-                .customerId(customerId)
-                .customerName(customer.getName())
-                .customerEmail(customer.getEmail())
-                .activityType("REGISTRATION")
-                .detail("Customer registered")
-                .timestamp(customer.getCreatedAt())
-                .source("WEB")
-                .build());
-        
-        // Add order activities
-        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(customerId);
-        for (Order order : orders) {
-            activities.add(CustomerActivityDTO.builder()
-                    .customerId(customerId)
-                    .customerName(customer.getName())
-                    .customerEmail(customer.getEmail())
-                    .activityType("ORDER_PLACED")
-                    .detail("Order placed: " + order.getOrderNumber())
-                    .timestamp(order.getCreatedAt())
-                    .referenceId(order.getId().toString())
-                    .referenceType("ORDER")
-                    .source("WEB")
-                    .build());
-        }
-        
-        // Sort by timestamp descending
-        activities.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
-        
-        return activities;
     }
 
     /**

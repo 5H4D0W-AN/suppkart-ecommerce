@@ -21,7 +21,7 @@ import com.suppkart.model.entity.Consultation;
 import com.suppkart.model.entity.User;
 import com.suppkart.model.enums.ConsultationStatus;
 import com.suppkart.repository.ConsultationRepository;
-import com.suppkart.repository.ConsultationSlotRepository;
+
 import com.suppkart.repository.UserRepository;
 
 import lombok.Data;
@@ -38,8 +38,7 @@ public class ConsultationService {
     @Autowired
     private ConsultationRepository consultationRepository;
     
-    @Autowired
-    private ConsultationSlotRepository consultationSlotRepository;
+
     
     @Autowired
     private UserRepository userRepository;
@@ -53,30 +52,15 @@ public class ConsultationService {
     public List<LocalDate> getAvailableDates(LocalDate startDate, LocalDate endDate) {
         return startDate.datesUntil(endDate.plusDays(1))
                 .filter(date -> date.getDayOfWeek().getValue() <= 5) // Mon-Fri
-                .filter(this::hasAvailableSlots)
+                .filter(this::isDayAvailable)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Get available time slots for date
+     * Check if a date is available for booking
      */
-    public List<LocalTime> getAvailableTimeSlots(LocalDate date) {
-        int dayOfWeek = date.getDayOfWeek().getValue();
-        return consultationSlotRepository.findByDayOfWeekAndIsAvailableTrue(dayOfWeek)
-                .stream()
-                .flatMap(slot -> generateTimeSlots(slot.getStartTime(), slot.getEndTime()))
-                .filter(time -> isSlotAvailable(date, time))
-                .collect(Collectors.toList());
-    }
-    
-    private java.util.stream.Stream<LocalTime> generateTimeSlots(LocalTime start, LocalTime end) {
-        List<LocalTime> slots = new java.util.ArrayList<>();
-        LocalTime current = start;
-        while (current.isBefore(end)) {
-            slots.add(current);
-            current = current.plusMinutes(15);
-        }
-        return slots.stream();
+    public boolean isDateAvailable(LocalDate date) {
+        return isDayAvailable(date);
     }
 
     /**
@@ -159,26 +143,22 @@ public class ConsultationService {
     }
 
     // Private helper methods
-    private boolean hasAvailableSlots(LocalDate date) {
-        return !getAvailableTimeSlots(date).isEmpty();
+    private boolean isDayAvailable(LocalDate date) {
+        Long currentBookings = consultationRepository.countActiveConsultationsByDate(date);
+        return currentBookings < 5; // Max 5 active bookings per day
     }
 
-    private boolean isSlotAvailable(LocalDate date, LocalTime time) {
-        LocalTime endTime = time.plusMinutes(15);
-        Long bookingCount = consultationRepository.countByConsultationDateAndConsultationTimeBetween(
-                date, time, endTime);
-        return bookingCount < 2; // Max 2 bookings per hour
-    }
+
 
     private void validateBookingRequest(ConsultationBookingRequest request) {
         if (request.getConsultationDate().isBefore(LocalDate.now())) {
             throw ConsultationException.pastDateBooking();
         }
         
-        if (!isSlotAvailable(request.getConsultationDate(), request.getConsultationTime())) {
+        if (!isDayAvailable(request.getConsultationDate())) {
             throw ConsultationException.slotNotAvailable(
                     request.getConsultationDate().toString(),
-                    request.getConsultationTime().toString());
+                    "Day is fully booked (max 5 consultations per day)");
         }
     }
 
@@ -196,31 +176,7 @@ public class ConsultationService {
         //         : consultation.getGuestEmail();
     }
 
-    /**
-     * Get consultations for admin with pagination and filtering
-     */
-    public Page<ConsultationResponse> getConsultationsForAdmin(ConsultationStatus status, 
-                                                              LocalDate startDate, 
-                                                              LocalDate endDate,
-                                                              Pageable pageable) {
-        return getConsultations(status, startDate, endDate, pageable);
-    }
 
-    /**
-     * Get consultation by ID
-     */
-    public ConsultationResponse getConsultationById(Long id) {
-        Consultation consultation = consultationRepository.findById(id)
-                .orElseThrow(() -> ConsultationException.consultationNotFound(id));
-        return mapToResponse(consultation);
-    }
-
-    /**
-     * Update consultation status (admin version)
-     */
-    public ConsultationResponse updateConsultationStatus(Long id, ConsultationStatus status, String notes) {
-        return updateStatus(id, status, notes);
-    }
 
     /**
      * Get consultations for a specific date
@@ -275,17 +231,17 @@ public class ConsultationService {
     /**
      * Reschedule consultation
      */
-    public ConsultationResponse rescheduleConsultation(Long id, LocalDate newDate, LocalTime newTime, String reason) {
+    public ConsultationResponse rescheduleConsultation(Long id, LocalDate newDate, String reason) {
         Consultation consultation = consultationRepository.findById(id)
                 .orElseThrow(() -> ConsultationException.consultationNotFound(id));
         
         // Validate new slot availability
-        if (!isSlotAvailable(newDate, newTime)) {
-            throw ConsultationException.slotNotAvailable(newDate.toString(), newTime.toString());
+        if (!isDayAvailable(newDate)) {
+            throw ConsultationException.slotNotAvailable(newDate.toString(), "Day is fully booked (max 5 consultations per day)");
         }
         
         consultation.setConsultationDate(newDate);
-        consultation.setConsultationTime(newTime);
+        // Keep the original time - no need to change it since we're only managing by day
         consultation.setNotes(consultation.getNotes() + "\nRescheduled: " + reason);
         consultation.setUpdatedAt(LocalDateTime.now());
         

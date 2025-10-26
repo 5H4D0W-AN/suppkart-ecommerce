@@ -1,10 +1,10 @@
 package com.suppkart.controller;
 
-import com.suppkart.dto.content.PageDTO;
-import com.suppkart.dto.content.PageCreateRequest;
-import com.suppkart.dto.content.PageUpdateRequest;
+import com.suppkart.dto.content.*;
 import com.suppkart.dto.response.ApiResponse;
-import com.suppkart.service.PageService;
+import com.suppkart.model.enums.PageType;
+import com.suppkart.service.FileUploadService;
+import com.suppkart.service.SeoMetadataService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,11 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 /**
- * Admin Page Controller for managing static pages
+ * Admin Page Controller for managing dynamic page content and SEO metadata
  * Requires ADMIN or CONTENT_MANAGER role for all operations
  */
 @RestController
@@ -26,105 +27,102 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN') or hasRole('CONTENT_MANAGER')")
 public class AdminPageController {
 
-    private final PageService pageService;
+    private final SeoMetadataService seoMetadataService;
+    private final FileUploadService fileUploadService;
 
     /**
-     * Create a new page
+     * Get all available page types for management
      */
-    @PostMapping
-    public ResponseEntity<ApiResponse<PageDTO>> createPage(
-            @Valid @RequestBody PageCreateRequest request) {
-        log.info("Creating new page with title: {}", request.getTitle());
-        
-        PageDTO page = pageService.createPage(request);
-        
+    @GetMapping("/types")
+    public ResponseEntity<ApiResponse<List<PageType>>> getAllPageTypes() {
+        log.info("Fetching all available page types");
+
+        List<PageType> pageTypes = seoMetadataService.getAllPageTypes();
+
+        return ResponseEntity.ok(ApiResponse.success("Page types retrieved successfully", pageTypes));
+    }
+
+    /**
+     * Get all content elements for a specific page type
+     */
+    @GetMapping("/{pageType}")
+    public ResponseEntity<ApiResponse<PageContentResponse>> getPageContent(@PathVariable PageType pageType) {
+        log.info("Fetching content for page type: {}", pageType);
+
+        PageContentResponse pageContent = seoMetadataService.getPageContent(pageType);
+
+        return ResponseEntity.ok(ApiResponse.success("Page content retrieved successfully", pageContent));
+    }
+
+    /**
+     * Create a new content element for a page
+     */
+    @PostMapping("/{pageType}/elements")
+    public ResponseEntity<ApiResponse<SeoMetadataDTO>> createElement(
+            @PathVariable PageType pageType,
+            @Valid @RequestBody SeoMetadataRequest request) {
+        log.info("Creating new element for page type: {} with key: {}", pageType, request.getElementKey());
+
+        // Ensure the page type matches the path parameter
+        request.setPageType(pageType);
+
+        SeoMetadataDTO element = seoMetadataService.createElement(request);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Page created successfully", page));
+                .body(ApiResponse.success("Element created successfully", element));
     }
 
     /**
-     * Update an existing page
+     * Update an existing content element
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<PageDTO>> updatePage(
+    @PutMapping("/elements/{id}")
+    public ResponseEntity<ApiResponse<SeoMetadataDTO>> updateElement(
             @PathVariable Long id,
-            @Valid @RequestBody PageUpdateRequest request) {
-        log.info("Updating page with ID: {}", id);
-        
-        PageDTO page = pageService.updatePage(id, request);
-        
-        return ResponseEntity.ok(ApiResponse.success("Page updated successfully", page));
+            @Valid @RequestBody SeoMetadataRequest request) {
+        log.info("Updating element with ID: {}", id);
+
+        SeoMetadataDTO element = seoMetadataService.updateElement(id, request);
+
+        return ResponseEntity.ok(ApiResponse.success("Element updated successfully", element));
     }
 
     /**
-     * Get page by ID (for admin use)
+     * Upload media file for page content
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<PageDTO>> getPageById(@PathVariable Long id) {
-        log.info("Fetching page with ID: {}", id);
-        
-        PageDTO page = pageService.getPageById(id);
-        
-        return ResponseEntity.ok(ApiResponse.success("Page retrieved successfully", page));
+    @PostMapping("/{pageType}/upload")
+    public ResponseEntity<ApiResponse<String>> uploadMedia(
+            @PathVariable PageType pageType,
+            @RequestParam("file") MultipartFile file) {
+        log.info("Uploading media file for page type: {}", pageType);
+
+        // Create subdirectory based on page type (e.g., "default_path/AboutUs/image.jpg")
+        String subDirectory = pageType.name().toLowerCase().replace("_", "");
+        String fileUrl = fileUploadService.uploadFile(file, subDirectory);
+
+        return ResponseEntity.ok(ApiResponse.success("File uploaded successfully", fileUrl));
     }
 
     /**
-     * Get all pages (for admin use)
+     * Get element by ID (for editing)
      */
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<PageDTO>>> getAllPages() {
-        log.info("Fetching all pages");
-        
-        List<PageDTO> pages = pageService.getAllPages();
-        
-        return ResponseEntity.ok(ApiResponse.success("Pages retrieved successfully", pages));
+    @GetMapping("/elements/{id}")
+    public ResponseEntity<ApiResponse<SeoMetadataDTO>> getElementById(@PathVariable Long id) {
+        log.info("Fetching element with ID: {}", id);
+
+        SeoMetadataDTO element = seoMetadataService.getElementById(id);
+
+        return ResponseEntity.ok(ApiResponse.success("Element retrieved successfully", element));
     }
 
     /**
-     * Delete a page
+     * Delete a content element
      */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deletePage(@PathVariable Long id) {
-        log.info("Deleting page with ID: {}", id);
-        
-        pageService.deletePage(id);
-        
-        return ResponseEntity.ok(ApiResponse.success("Page deleted successfully"));
-    }
+    @DeleteMapping("/elements/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteElement(@PathVariable Long id) {
+        log.info("Deleting element with ID: {}", id);
 
-    /**
-     * Publish a page
-     */
-    @PatchMapping("/{id}/publish")
-    public ResponseEntity<ApiResponse<PageDTO>> publishPage(@PathVariable Long id) {
-        log.info("Publishing page with ID: {}", id);
-        
-        PageDTO page = pageService.publishPage(id);
-        
-        return ResponseEntity.ok(ApiResponse.success("Page published successfully", page));
-    }
+        seoMetadataService.deleteElement(id);
 
-    /**
-     * Unpublish a page (change status to draft)
-     */
-    @PatchMapping("/{id}/unpublish")
-    public ResponseEntity<ApiResponse<PageDTO>> unpublishPage(@PathVariable Long id) {
-        log.info("Unpublishing page with ID: {}", id);
-        
-        PageDTO page = pageService.unpublishPage(id);
-        
-        return ResponseEntity.ok(ApiResponse.success("Page unpublished successfully", page));
-    }
-
-    /**
-     * Get page by slug (for admin preview)
-     */
-    @GetMapping("/by-slug/{slug}")
-    public ResponseEntity<ApiResponse<PageDTO>> getPageBySlug(@PathVariable String slug) {
-        log.info("Fetching page with slug: {}", slug);
-        
-        PageDTO page = pageService.getPublishedPageBySlug(slug);
-        
-        return ResponseEntity.ok(ApiResponse.success("Page retrieved successfully", page));
+        return ResponseEntity.ok(ApiResponse.success("Element deleted successfully"));
     }
 }

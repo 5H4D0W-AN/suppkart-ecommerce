@@ -26,9 +26,7 @@ public class ReviewDetailDTO {
     private Integer rating;
     private String title;
     private String content;
-    private List<String> images;
     private String status;
-    private String adminResponse;
     private Integer helpfulVotes;
     private LocalDateTime createdAt;
     private Boolean isFake;

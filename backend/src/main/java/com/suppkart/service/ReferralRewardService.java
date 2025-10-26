@@ -31,6 +31,9 @@ public class ReferralRewardService {
     @Autowired
     private ReferralRewardRepository referralRewardRepository;
     
+    @Autowired
+    private EmailNotificationService emailNotificationService;
+    
     /**
      * Create a new reward
      */
@@ -112,6 +115,27 @@ public class ReferralRewardService {
     }
     
     /**
+     * Get all rewards with filters (Admin)
+     */
+    @Transactional(readOnly = true)
+    public Page<ReferralRewardDto> getAllRewardsWithFilters(RewardStatus status, String userName, Boolean isReferrerReward, Pageable pageable) {
+        try {
+            Page<ReferralReward> rewards;
+            
+            if (status != null || userName != null || isReferrerReward != null) {
+                rewards = referralRewardRepository.findRewardsWithFilters(status, userName, isReferrerReward, pageable);
+            } else {
+                rewards = referralRewardRepository.findAllByOrderByCreatedAtDesc(pageable);
+            }
+            
+            return rewards.map(this::convertToDto);
+        } catch (Exception e) {
+            logger.error("Error getting rewards with filters: {}", e.getMessage());
+            throw new ReferralException("Failed to retrieve rewards with filters: " + e.getMessage());
+        }
+    }
+    
+    /**
      * Apply rewards during checkout
      */
     public BigDecimal applyRewardsToOrder(User user, BigDecimal orderTotal, Order order) {
@@ -183,6 +207,72 @@ public class ReferralRewardService {
             
         } catch (Exception e) {
             logger.error("Error expiring old rewards: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Expire rewards older than 15 days with user notification
+     */
+    @Transactional
+    public void expireRewardsOlderThan15Days() {
+        try {
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(15);
+            List<ReferralReward> rewardsToExpire = referralRewardRepository.findActiveRewardsOlderThan(cutoffDate);
+            
+            for (ReferralReward reward : rewardsToExpire) {
+                // Expire the reward
+                reward.expire();
+                referralRewardRepository.save(reward);
+                
+                // Send notification to user
+                try {
+                    sendRewardExpirationNotification(reward);
+                } catch (Exception emailException) {
+                    logger.error("Failed to send expiration notification for reward {} to user {}: {}", 
+                               reward.getRewardId(), reward.getUser().getUserId(), emailException.getMessage());
+                }
+                
+                logger.info("Expired reward {} for user {} (older than 15 days)", 
+                           reward.getRewardId(), reward.getUser().getUserId());
+            }
+            
+            if (!rewardsToExpire.isEmpty()) {
+                logger.info("Expired {} rewards older than 15 days with user notifications", rewardsToExpire.size());
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error expiring rewards older than 15 days: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Send reward expiration notification to user
+     */
+    private void sendRewardExpirationNotification(ReferralReward reward) {
+        try {
+            String subject = "Referral Reward Expired - SuppKart";
+            
+            StringBuilder content = new StringBuilder();
+            content.append("Dear ").append(reward.getUser().getFirstName()).append(",\n\n");
+            content.append("We wanted to inform you that one of your referral rewards has expired.\n\n");
+            content.append("Reward Details:\n");
+            content.append("Reward Amount: ₹").append(reward.getRewardAmount()).append("\n");
+            content.append("Referral Code: ").append(reward.getReferral().getReferralCode()).append("\n");
+            content.append("Expiration Date: ").append(reward.getExpirationDate()).append("\n\n");
+            content.append("This reward was valid for 15 days from the date it was activated. ");
+            content.append("Unfortunately, it has now expired and can no longer be used.\n\n");
+            content.append("Don't worry! You can continue earning new rewards by referring more friends to SuppKart. ");
+            content.append("Each successful referral earns you fresh rewards.\n\n");
+            content.append("Keep sharing your referral code and enjoy the benefits!\n\n");
+            content.append("Best regards,\n");
+            content.append("SuppKart Team");
+            
+            emailNotificationService.sendEmail(reward.getUser().getEmail(), subject, content.toString());
+            
+        } catch (Exception e) {
+            logger.error("Failed to send reward expiration notification to user {}: {}", 
+                       reward.getUser().getUserId(), e.getMessage());
+            throw e;
         }
     }
     

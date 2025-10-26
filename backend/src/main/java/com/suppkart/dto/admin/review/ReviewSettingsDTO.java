@@ -18,7 +18,5 @@ public class ReviewSettingsDTO {
     private Boolean autoApprove;
     private Boolean requireVerifiedPurchase;
     private Integer minimumReviewLength;
-    private Boolean allowImages;
-    private Boolean allowReplies;
     private List<String> moderationEmails;
 }

@@ -136,4 +136,25 @@ public interface ReferralRewardRepository extends JpaRepository<ReferralReward, 
      */
     @Query("SELECT SUM(r.rewardAmount) FROM ReferralReward r WHERE r.status = 'APPLIED'")
     Double getTotalRewardValueForAllUsers();
+    
+    /**
+     * Find rewards with filters for admin
+     */
+    @Query("SELECT r FROM ReferralReward r WHERE " +
+           "(:status IS NULL OR r.status = :status) AND " +
+           "(:userName IS NULL OR LOWER(r.user.firstName) LIKE LOWER(CONCAT('%', :userName, '%')) OR LOWER(r.user.lastName) LIKE LOWER(CONCAT('%', :userName, '%'))) AND " +
+           "(:isReferrerReward IS NULL OR r.isReferrerReward = :isReferrerReward) " +
+           "ORDER BY r.createdAt DESC")
+    Page<ReferralReward> findRewardsWithFilters(@Param("status") RewardStatus status, 
+                                               @Param("userName") String userName, 
+                                               @Param("isReferrerReward") Boolean isReferrerReward, 
+                                               Pageable pageable);
+    
+    /**
+     * Find active rewards older than specified date
+     */
+    @Query("SELECT r FROM ReferralReward r WHERE r.status = 'ACTIVE' " +
+           "AND r.createdAt < :cutoffDate " +
+           "ORDER BY r.createdAt ASC")
+    List<ReferralReward> findActiveRewardsOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

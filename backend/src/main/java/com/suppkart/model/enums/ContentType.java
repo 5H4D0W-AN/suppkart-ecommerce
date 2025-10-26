@@ -1,24 +1,21 @@
 package com.suppkart.model.enums;
 
 /**
- * Enum representing different content types for blog posts
+ * Enum representing different content types for SEO metadata
  */
 public enum ContentType {
-    /**
-     * HTML content - rich formatted content with HTML tags
-     * Best for: Rich text editors, complex formatting
-     */
-    HTML,
-    
-    /**
-     * Markdown content - lightweight markup language
-     * Best for: Developer-friendly writing, simple formatting
-     */
-    MARKDOWN,
-    
-    /**
-     * Plain text content - no formatting
-     * Best for: Simple text-only content
-     */
-    PLAIN_TEXT
+    TEXT("Text"),
+    MEDIA("Media"),
+    HTML("HTML"),
+    JSON("JSON");
+
+    private final String displayName;
+
+    ContentType(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
 }

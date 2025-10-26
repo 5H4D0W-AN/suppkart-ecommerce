@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Data
 @Builder
@@ -14,7 +13,6 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class RescheduleRequest {
     private LocalDate newDate;
-    private LocalTime newTime;
     private String reason;
     private Boolean notifyCustomer;
 }

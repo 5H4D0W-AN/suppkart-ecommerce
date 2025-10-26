@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Data
 @Builder
@@ -17,7 +16,6 @@ public class ConsultationDTO {
     private String customerName;
     private String customerEmail;
     private LocalDate date;
-    private LocalTime time;
     private String topic;
     private String status;
 }

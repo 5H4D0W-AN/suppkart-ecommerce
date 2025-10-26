@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Data
 @Builder
@@ -20,7 +19,6 @@ public class ConsultationDetailDTO {
     private String customerPhone;
     private Long customerId;
     private LocalDate date;
-    private LocalTime time;
     private String topic;
     private String consultationType;
     private String notes;
